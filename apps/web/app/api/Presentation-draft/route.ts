@@ -2,7 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  draftMode().enable();
+  const dm = await draftMode();
+  dm.enable();
   const url = new URL("/", req.nextUrl);
   return NextResponse.redirect(url);
 }
