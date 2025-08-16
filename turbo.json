@@ -4,11 +4,13 @@
   "globalEnv": [
     "SANITY_API_READ_TOKEN",
     "SANITY_API_WRITE_TOKEN",
+    "SANITY_STUDIO_PROJECT_ID",
+    "SANITY_STUDIO_DATASET",
+    "SANITY_STUDIO_PRESENTATION_URL",
     "VERCEL_URL",
     "VERCEL_PROJECT_PRODUCTION_URL",
     "VERCEL_ENV",
-    "NODE_ENV",
-    "SANITY_STUDIO_PRESENTATION_URL"
+    "NODE_ENV"
   ],
   "tasks": {
     "build": {
@@ -21,3 +23,5 @@
     "dev": { "cache": false, "persistent": true }
   }
 }
+
+
