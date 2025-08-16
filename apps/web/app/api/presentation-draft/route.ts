@@ -1,9 +1,10 @@
 ﻿import { draftMode } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
-  const dm = await draftMode();
-  dm.enable();
-  const url = new URL("/", req.nextUrl);
+export async function GET(request: Request) {
+  const d = await draftMode();
+  d.enable();
+
+  const url = new URL("/", request.url);
   return NextResponse.redirect(url);
 }
