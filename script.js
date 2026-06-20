@@ -10,6 +10,14 @@ toggle?.addEventListener("click", () => {
   setMenu(!document.body.classList.contains("menu-open"));
 });
 
+document.addEventListener("click", (event) => {
+  const isOpen = document.body.classList.contains("menu-open");
+  const target = event.target;
+  if (!isOpen || !(target instanceof Node)) return;
+  if (nav?.contains(target) || toggle?.contains(target)) return;
+  setMenu(false);
+});
+
 nav?.addEventListener("click", (event) => {
   if (event.target instanceof HTMLAnchorElement) {
     setMenu(false);
@@ -18,6 +26,12 @@ nav?.addEventListener("click", (event) => {
 
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    setMenu(false);
+  }
+});
+
+window.addEventListener("resize", () => {
+  if (window.innerWidth > 920) {
     setMenu(false);
   }
 });
