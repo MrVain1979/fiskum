@@ -5,6 +5,7 @@
   --paper: #f3f1ec;
   --panel: #ffffff;
   --steel: #1d2934;
+  --dark-panel: #111820;
   --blue: #15537f;
   --accent: #e8b72d;
   --accent-dark: #8a650b;
@@ -603,7 +604,7 @@ details p {
 blockquote {
   margin: 0;
   padding: clamp(24px, 3vw, 32px);
-  background: var(--steel);
+  background: var(--dark-panel);
   border-radius: var(--radius);
   color: #fff;
 }
@@ -627,7 +628,7 @@ cite {
   width: min(var(--max), calc(100% - (var(--gutter) * 2)));
   margin: clamp(10px, 2vw, 24px) auto clamp(54px, 8vw, 92px);
   padding: clamp(34px, 5vw, 64px);
-  background: #111820;
+  background: var(--dark-panel);
   color: #fff;
   border-radius: var(--radius);
 }
