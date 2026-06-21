@@ -658,8 +658,9 @@ textarea {
   border-bottom: 1px solid var(--line);
 }
 
-.breadcrumb-link {
-  display: inline-flex;
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-bottom: clamp(28px, 4vw, 46px);
@@ -668,18 +669,21 @@ textarea {
   font-weight: 850;
 }
 
-.breadcrumb-link::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-left: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(45deg);
+.breadcrumbs a {
+  color: var(--blue);
 }
 
-.breadcrumb-link:hover,
-.breadcrumb-link:focus-visible {
-  color: var(--blue);
+.breadcrumbs a:hover,
+.breadcrumbs a:focus-visible {
+  color: var(--ink);
+}
+
+.breadcrumbs span[aria-current="page"] {
+  color: var(--muted);
+}
+
+.breadcrumb-separator {
+  color: color-mix(in srgb, var(--muted) 55%, transparent);
 }
 
 .page-hero h1 {
