@@ -87,17 +87,60 @@ if (reduceMotion) {
   revealItems.forEach((item) => item.classList.add("is-visible"));
 }
 
-const heroImage = document.querySelector(".hero-media img");
+const heroSlides = Array.from(document.querySelectorAll(".hero-slide"));
+const heroDots = Array.from(document.querySelectorAll(".hero-dots button"));
+let heroIndex = 0;
+let heroTimer;
+
+function setHeroSlide(index) {
+  if (!heroSlides.length) return;
+  heroIndex = (index + heroSlides.length) % heroSlides.length;
+
+  heroSlides.forEach((slide, slideIndex) => {
+    slide.classList.toggle("is-active", slideIndex === heroIndex);
+    if (slideIndex !== heroIndex) {
+      slide.querySelector("img")?.style.removeProperty("transform");
+    }
+  });
+
+  heroDots.forEach((dot, dotIndex) => {
+    const active = dotIndex === heroIndex;
+    dot.classList.toggle("is-active", active);
+    dot.setAttribute("aria-current", active ? "true" : "false");
+  });
+
+  updateHeroMotion();
+}
+
+function startHeroSlider() {
+  if (reduceMotion || heroSlides.length < 2) return;
+  window.clearInterval(heroTimer);
+  heroTimer = window.setInterval(() => setHeroSlide(heroIndex + 1), 5600);
+}
+
+heroDots.forEach((dot, index) => {
+  dot.addEventListener("click", () => {
+    setHeroSlide(index);
+    startHeroSlider();
+  });
+});
+
 let ticking = false;
 
 function updateHeroMotion() {
   ticking = false;
-  if (!heroImage || reduceMotion || window.innerWidth < 720) return;
+  const activeImage = document.querySelector(".hero-slide.is-active img");
+  if (!activeImage || reduceMotion || window.innerWidth < 720) return;
   const offset = Math.min(window.scrollY * 0.05, 28);
-  heroImage.style.transform = `scale(1.06) translateY(${offset}px)`;
+  activeImage.style.transform = `scale(1.06) translateY(${offset}px)`;
 }
 
-if (heroImage && !reduceMotion) {
+if (heroSlides.length) {
+  setHeroSlide(0);
+  startHeroSlider();
+}
+
+if (heroSlides.length && !reduceMotion) {
   updateHeroMotion();
   window.addEventListener(
     "scroll",
