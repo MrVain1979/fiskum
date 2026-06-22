@@ -63,9 +63,9 @@ const revealSelectors = [
 
 const revealItems = Array.from(document.querySelectorAll(revealSelectors));
 
-revealItems.forEach((item, index) => {
+revealItems.forEach((item) => {
   item.classList.add("reveal");
-  item.style.setProperty("--reveal-delay", `${Math.min(index % 8, 7) * 55}ms`);
+  item.style.setProperty("--reveal-delay", "0ms");
 });
 
 if (reduceMotion) {
@@ -79,7 +79,7 @@ if (reduceMotion) {
         observer.unobserve(entry.target);
       });
     },
-    { rootMargin: "0px 0px -8% 0px", threshold: 0.12 }
+    { rootMargin: "0px", threshold: 0 }
   );
 
   revealItems.forEach((item) => observer.observe(item));
