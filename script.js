@@ -92,9 +92,17 @@ const heroDots = Array.from(document.querySelectorAll(".hero-dots button"));
 let heroIndex = 0;
 let heroTimer;
 
+function hydrateHeroSlide(index) {
+  const image = heroSlides[index]?.querySelector("img[data-src]");
+  if (!image) return;
+  image.src = image.dataset.src;
+  image.removeAttribute("data-src");
+}
+
 function setHeroSlide(index) {
   if (!heroSlides.length) return;
   heroIndex = (index + heroSlides.length) % heroSlides.length;
+  hydrateHeroSlide(heroIndex);
 
   heroSlides.forEach((slide, slideIndex) => {
     slide.classList.toggle("is-active", slideIndex === heroIndex);
@@ -138,6 +146,9 @@ function updateHeroMotion() {
 if (heroSlides.length) {
   setHeroSlide(0);
   startHeroSlider();
+  window.setTimeout(() => {
+    hydrateHeroSlide(1);
+  }, 900);
 }
 
 if (heroSlides.length && !reduceMotion) {
