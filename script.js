@@ -62,27 +62,45 @@ const revealSelectors = [
 ].join(",");
 
 const revealItems = Array.from(document.querySelectorAll(revealSelectors));
+const firstSectionAfterHero = document.querySelector(".hero + .section");
+const immediateRevealItems = revealItems.filter((item) => firstSectionAfterHero?.contains(item));
+const standardRevealItems = revealItems.filter((item) => !firstSectionAfterHero?.contains(item));
 
 revealItems.forEach((item) => {
   item.classList.add("reveal");
+});
+
+standardRevealItems.forEach((item, index) => {
+  item.style.setProperty("--reveal-delay", `${Math.min(index % 8, 7) * 55}ms`);
+});
+
+immediateRevealItems.forEach((item) => {
   item.style.setProperty("--reveal-delay", "0ms");
 });
 
 if (reduceMotion) {
   revealItems.forEach((item) => item.classList.add("is-visible"));
 } else if ("IntersectionObserver" in window) {
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add("is-visible");
-        observer.unobserve(entry.target);
-      });
-    },
+  const revealVisible = (entries, observer) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-visible");
+      observer.unobserve(entry.target);
+    });
+  };
+
+  const standardObserver = new IntersectionObserver(
+    (entries, observer) => revealVisible(entries, observer),
+    { rootMargin: "0px 0px -8% 0px", threshold: 0.12 }
+  );
+
+  const immediateObserver = new IntersectionObserver(
+    (entries, observer) => revealVisible(entries, observer),
     { rootMargin: "0px", threshold: 0 }
   );
 
-  revealItems.forEach((item) => observer.observe(item));
+  standardRevealItems.forEach((item) => standardObserver.observe(item));
+  immediateRevealItems.forEach((item) => immediateObserver.observe(item));
 } else {
   revealItems.forEach((item) => item.classList.add("is-visible"));
 }
