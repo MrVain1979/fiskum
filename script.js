@@ -182,11 +182,9 @@ if (heroSlides.length && !reduceMotion) {
   );
 }
 
-document.querySelector(".contact-form")?.addEventListener("submit", (event) => {
+document.addEventListener("submit", (event) => {
+  if (!(event.target instanceof HTMLFormElement) || !event.target.matches(".contact-form")) return;
+  if (event.target.action) return;
   event.preventDefault();
-  const button = event.currentTarget.querySelector("button");
-  if (button) {
-    button.textContent = "Takk, forespørselen er klar";
-    button.setAttribute("disabled", "");
-  }
+  alert("Skjemaet er ikke konfigurert for sending enda.");
 });

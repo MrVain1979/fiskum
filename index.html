@@ -170,11 +170,18 @@
         <h2>Send oss en forespørsel</h2>
         <p>Har du spørsmål, er du alltid velkommen til å ta kontakt med oss.</p>
       </div>
-      <form class="contact-form">
-        <label>Navn<input type="text" name="name" autocomplete="name" required></label>
-        <label>E-post<input type="email" name="email" autocomplete="email" required></label>
-        <label>Beskjed<textarea name="message" rows="5"></textarea></label>
-        <button class="button primary" type="submit">Send inn</button>
+      <form class="contact-form" action="https://formsubmit.co/post@fiskum-sveis.no" method="POST" aria-label="Kontaktskjema">
+        <input type="hidden" name="_subject" value="Ny forespørsel fra fiskum-sveis.no">
+        <input type="hidden" name="_template" value="table">
+        <input type="hidden" name="_captcha" value="false">
+        <input type="hidden" name="_next" value="https://fiskum-studio.vercel.app/kontakt-oss/">
+        <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" class="honeypot">
+        <label>Navn<input type="text" name="name" autocomplete="name" placeholder="Ditt navn" required></label>
+        <label>E-post<input type="email" name="email" autocomplete="email" placeholder="din@epost.no" required></label>
+        <label>Telefon<input type="tel" name="phone" autocomplete="tel" placeholder="Telefonnummer"></label>
+        <label>Hva gjelder det?<select name="topic" required><option>Stålbygg</option><option>Vegger, fasade og tak</option><option>Broer</option><option>Trapper og rekkverk</option><option>Kranutleie</option><option>Annet</option></select></label>
+        <label>Beskjed<textarea name="message" rows="5" placeholder="Skriv kort hva du trenger hjelp med" required></textarea></label>
+        <button class="button primary" type="submit">Send forespørsel</button>
       </form>
     </section>
   </main>
