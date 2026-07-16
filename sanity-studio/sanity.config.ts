@@ -1,7 +1,6 @@
 import { assist } from "@sanity/assist";
 import { visionTool } from "@sanity/vision";
 import { defineConfig } from "sanity";
-import { presentationTool } from "sanity/presentation";
 import { structureTool } from "sanity/structure";
 import {
   unsplashAssetSource,
@@ -10,12 +9,11 @@ import {
 import { iconPicker } from "sanity-plugin-icon-picker";
 import { media, mediaAssetSource } from "sanity-plugin-media";
 
+import { LivePreviewLayout } from "./components/live-preview-layout";
 import { Logo } from "./components/logo";
-import { locations } from "./location";
-import { presentationUrl } from "./plugins/presentation-url";
 import { schemaTypes } from "./schemaTypes";
 import { structure } from "./structure";
-import { createPageTemplate, getPresentationUrl } from "./utils/helper";
+import { createPageTemplate } from "./utils/helper";
 
 const projectId = process.env.SANITY_STUDIO_PROJECT_ID ?? "qgyys6fw";
 const dataset = process.env.SANITY_STUDIO_DATASET ?? "production";
@@ -33,14 +31,6 @@ export default defineConfig({
     enabled: true,
   },
   plugins: [
-    presentationTool({
-      resolve: {
-        locations,
-      },
-      previewUrl: {
-        origin: getPresentationUrl(),
-      },
-    }),
     assist(),
     structureTool({
       structure,
@@ -48,7 +38,6 @@ export default defineConfig({
     visionTool(),
     iconPicker(),
     media(),
-    presentationUrl(),
     unsplashImageAsset(),
   ],
 
@@ -64,6 +53,9 @@ export default defineConfig({
     },
   },
   document: {
+    components: {
+      unstable_layout: LivePreviewLayout,
+    },
     newDocumentOptions: (prev, { creationContext }) => {
       const { type } = creationContext;
       if (type === "global") return [];
