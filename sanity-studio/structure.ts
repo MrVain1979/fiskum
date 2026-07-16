@@ -1,16 +1,17 @@
-import { orderableDocumentListDeskItem } from "@sanity/orderable-document-list";
 import {
-  BookMarked,
+  BookOpen,
   CogIcon,
   File,
   FileText,
+  FolderKanban,
   HomeIcon,
-  type LucideIcon,
-  MessageCircleQuestion,
+  ImageIcon,
+  Newspaper,
   PanelBottomIcon,
   PanelTopDashedIcon,
   Settings2,
-  User,
+  Wrench,
+  type LucideIcon,
 } from "lucide-react";
 import type {
   StructureBuilder,
@@ -23,16 +24,15 @@ import { getTitleCase } from "./utils/helper";
 type Base<T = SchemaType> = {
   id?: string;
   type: T;
-  preview?: boolean;
   title?: string;
   icon?: LucideIcon;
 };
 
-type CreateSingleTon = {
+type CreateSingleton = {
   S: StructureBuilder;
 } & Base<SingletonType>;
 
-const createSingleTon = ({ S, type, title, icon }: CreateSingleTon) => {
+const createSingleton = ({ S, type, title, icon }: CreateSingleton) => {
   const newTitle = title ?? getTitleCase(type);
   return S.listItem()
     .title(newTitle)
@@ -44,11 +44,6 @@ type CreateList = {
   S: StructureBuilder;
 } & Base;
 
-// This function creates a list item for a type. It takes a StructureBuilder instance (S),
-// a type, an icon, and a title as parameters. It generates a title for the type if not provided,
-// and uses a default icon if not provided. It then returns a list item with the generated or
-// provided title and icon.
-
 const createList = ({ S, type, icon, title, id }: CreateList) => {
   const newTitle = title ?? getTitleCase(type);
   return S.documentTypeListItem(type)
@@ -57,98 +52,48 @@ const createList = ({ S, type, icon, title, id }: CreateList) => {
     .icon(icon ?? File);
 };
 
-type CreateIndexList = {
-  S: StructureBuilder;
-  list: Base;
-  index: Base<SingletonType>;
-  context: StructureResolverContext;
-};
-
-const createIndexListWithOrderableItems = ({
-  S,
-  index,
-  list,
-  context,
-}: CreateIndexList) => {
-  const indexTitle = index.title ?? getTitleCase(index.type);
-  const listTitle = list.title ?? getTitleCase(list.type);
-  return S.listItem()
-    .title(listTitle)
-    .icon(index.icon ?? File)
-    .child(
-      S.list()
-        .title(indexTitle)
-        .items([
-          S.listItem()
-            .title(indexTitle)
-            .icon(index.icon ?? File)
-            .child(
-              S.document()
-                .views([S.view.form()])
-                .schemaType(index.type)
-                .documentId(index.type),
-            ),
-          orderableDocumentListDeskItem({
-            type: list.type,
-            S,
-            context,
-            icon: list.icon ?? File,
-            title: `${listTitle}`,
-          }),
-        ]),
-    );
-};
-
 export const structure = (
   S: StructureBuilder,
-  context: StructureResolverContext,
+  _context: StructureResolverContext,
 ) => {
   return S.list()
-    .title("Content")
+    .title("Fiskum innhold")
     .items([
-      createSingleTon({ S, type: "homePage", icon: HomeIcon }),
-      S.divider(),
-      createList({ S, type: "page", title: "Pages" }),
-      createIndexListWithOrderableItems({
-        S,
-        index: { type: "blogIndex", icon: BookMarked },
-        list: { type: "blog", title: "Blogs", icon: FileText },
-        context,
-      }),
-      createList({
-        S,
-        type: "faq",
-        title: "FAQs",
-        icon: MessageCircleQuestion,
-      }),
-      createList({ S, type: "author", title: "Authors", icon: User }),
+      createSingleton({ S, type: "homePage", title: "Forside", icon: HomeIcon }),
+      createList({ S, type: "page", title: "Sider", icon: BookOpen }),
+      createList({ S, type: "service", title: "Tjenester", icon: Wrench }),
+      createList({ S, type: "reference", title: "Referanser", icon: ImageIcon }),
+      createList({ S, type: "newsPost", title: "Aktuelt", icon: Newspaper }),
       S.divider(),
       S.listItem()
-        .title("Site Configuration")
+        .title("Globale innstillinger")
         .icon(Settings2)
         .child(
           S.list()
-            .title("Site Configuration")
+            .title("Globale innstillinger")
             .items([
-              createSingleTon({
+              createSingleton({
+                S,
+                type: "settings",
+                title: "Sideinnstillinger",
+                icon: CogIcon,
+              }),
+              createSingleton({
                 S,
                 type: "navbar",
-                title: "Navigation",
+                title: "Header og hovedmeny",
                 icon: PanelTopDashedIcon,
               }),
-              createSingleTon({
+              createSingleton({
                 S,
                 type: "footer",
                 title: "Footer",
                 icon: PanelBottomIcon,
               }),
-              createSingleTon({
-                S,
-                type: "settings",
-                title: "Global Settings",
-                icon: CogIcon,
-              }),
             ]),
         ),
+      S.divider(),
+      createList({ S, type: "faq", title: "FAQ", icon: FileText }),
+      createList({ S, type: "blog", title: "Gamle artikler", icon: FolderKanban }),
     ]);
 };

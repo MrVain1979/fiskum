@@ -5,7 +5,10 @@ import { createRadioListLayout, isValidUrl } from "../../utils/helper";
 const allLinkableTypes = [
   { type: "blog" },
   { type: "blogIndex" },
+  { type: "newsPost" },
   { type: "page" },
+  { type: "reference" },
+  { type: "service" },
 ];
 
 export const customUrl = defineType({
