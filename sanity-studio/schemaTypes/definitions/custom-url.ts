@@ -7,7 +7,7 @@ const allLinkableTypes = [
   { type: "blogIndex" },
   { type: "newsPost" },
   { type: "page" },
-  { type: "reference" },
+  { type: "projectReference" },
   { type: "service" },
 ];
 

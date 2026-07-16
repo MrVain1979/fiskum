@@ -62,7 +62,7 @@ export const structure = (
       createSingleton({ S, type: "homePage", title: "Forside", icon: HomeIcon }),
       createList({ S, type: "page", title: "Sider", icon: BookOpen }),
       createList({ S, type: "service", title: "Tjenester", icon: Wrench }),
-      createList({ S, type: "reference", title: "Referanser", icon: ImageIcon }),
+      createList({ S, type: "projectReference", title: "Referanser", icon: ImageIcon }),
       createList({ S, type: "newsPost", title: "Aktuelt", icon: Newspaper }),
       S.divider(),
       S.listItem()

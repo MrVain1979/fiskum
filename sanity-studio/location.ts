@@ -16,7 +16,7 @@ export const locations = {
       };
     },
   }),
-  reference: defineLocations({
+  projectReference: defineLocations({
     select: {
       title: "title",
       slug: "slug.current",

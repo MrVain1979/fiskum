@@ -1,8 +1,8 @@
 import { ImageIcon } from "@sanity/icons";
 import { defineField, defineType } from "sanity";
 
-export const reference = defineType({
-  name: "reference",
+export const projectReference = defineType({
+  name: "projectReference",
   title: "Referanse",
   type: "document",
   icon: ImageIcon,
