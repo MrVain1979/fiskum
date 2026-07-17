@@ -1,16 +1,8 @@
-import { Box, Card, Flex, Stack, Text } from "@sanity/ui";
+import { Box, Card, Flex, Spinner, Stack, Text } from "@sanity/ui";
 import type { CSSProperties } from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useEditState, type SanityDocument } from "sanity";
 import type { DocumentLayoutProps } from "sanity";
-
-const projectId = "qgyys6fw";
-const dataset = "production";
-
-type PortableTextBlock = {
-  _type?: string;
-  children?: Array<{ text?: string }>;
-};
 
 const previewTypes = new Set([
   "homePage",
@@ -18,10 +10,12 @@ const previewTypes = new Set([
   "service",
   "projectReference",
   "newsPost",
-  "settings",
-  "navbar",
-  "footer",
 ]);
+
+type PortableTextBlock = {
+  _type?: string;
+  children?: Array<{ text?: string }>;
+};
 
 function getValue(document: Partial<SanityDocument> | null, path: string) {
   return path.split(".").reduce<unknown>((value, key) => {
@@ -44,10 +38,19 @@ function getSlug(document: Partial<SanityDocument> | null) {
   return slug.startsWith("/") ? slug : `/${slug}`;
 }
 
+function normalizeRoute(route: string) {
+  if (route === "/") return "/";
+  return `${route.replace(/\/+$/, "")}/`;
+}
+
 function getRoute(document: Partial<SanityDocument> | null, documentType: string) {
   const slug = getSlug(document);
+
   if (documentType === "homePage") return "/";
-  if (documentType === "projectReference") return `/referanser${slug}/`.replaceAll("//", "/");
+  if (documentType === "projectReference") {
+    return normalizeRoute(`/referanser${slug}`);
+  }
+
   if (documentType === "newsPost") {
     const publishedAt = getString(document, ["publishedAt"]);
     if (publishedAt) {
@@ -56,11 +59,12 @@ function getRoute(document: Partial<SanityDocument> | null, documentType: string
         const yyyy = date.getFullYear();
         const mm = String(date.getMonth() + 1).padStart(2, "0");
         const dd = String(date.getDate()).padStart(2, "0");
-        return `/${yyyy}/${mm}/${dd}${slug}/`.replaceAll("//", "/");
+        return normalizeRoute(`/${yyyy}/${mm}/${dd}${slug}`);
       }
     }
   }
-  return `${slug}/`.replaceAll("//", "/");
+
+  return normalizeRoute(slug);
 }
 
 function textFromPortableText(value: unknown) {
@@ -75,105 +79,76 @@ function textFromPortableText(value: unknown) {
     .join("\n\n");
 }
 
-function imageUrlFromRef(ref?: string) {
-  if (!ref?.startsWith("image-")) return "";
-  const withoutPrefix = ref.slice("image-".length);
-  const lastDash = withoutPrefix.lastIndexOf("-");
-  if (lastDash === -1) return "";
-  const idAndSize = withoutPrefix.slice(0, lastDash);
-  const extension = withoutPrefix.slice(lastDash + 1);
-  return `https://cdn.sanity.io/images/${projectId}/${dataset}/${idAndSize}.${extension}?w=1100&fit=max&auto=format`;
+function plainText(document: Partial<SanityDocument> | null) {
+  return (
+    getString(document, ["summary", "excerpt", "description"]) ||
+    textFromPortableText(getValue(document, "body"))
+  );
 }
 
-function getImages(document: Partial<SanityDocument> | null) {
-  const gallery = getValue(document, "gallery");
-  const mainImageRef = getValue(document, "mainImage.asset._ref");
-  const galleryRefs = Array.isArray(gallery)
-    ? gallery
-        .map((item) =>
-          typeof item === "object" && item
-            ? getValue(item as Partial<SanityDocument>, "asset._ref")
-            : undefined,
-        )
-        .filter((ref): ref is string => typeof ref === "string")
-    : [];
-  const refs = typeof mainImageRef === "string" ? [mainImageRef, ...galleryRefs] : galleryRefs;
-  return refs.map(imageUrlFromRef).filter(Boolean).slice(0, 6);
-}
+function applyDraftToPageHtml(
+  html: string,
+  route: string,
+  document: Partial<SanityDocument> | null,
+  documentType: string,
+) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const title = getString(document, ["title", "internalTitle"]);
+  const intro = plainText(document);
+  const base = doc.createElement("base");
 
-function renderPreviewHtml(document: Partial<SanityDocument> | null, documentType: string) {
-  const title = getString(document, [
-    "title",
-    "internalTitle",
-    "companyName",
-    "siteTitle",
-    "label",
-  ]) || "Uten tittel";
-  const intro = getString(document, [
-    "summary",
-    "excerpt",
-    "description",
-    "siteDescription",
-    "subtitle",
-  ]);
-  const body = textFromPortableText(getValue(document, "body"));
-  const route = getRoute(document, documentType);
-  const images = getImages(document);
+  base.href = window.location.origin;
+  doc.head.prepend(base);
 
-  return `<!doctype html>
-<html lang="no">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      :root { color-scheme: light; --ink: #111111; --muted: #606975; --gold: #e6bd43; --line: #d9d7d0; --paper: #f3f1ec; }
-      * { box-sizing: border-box; }
-      body { margin: 0; font-family: Inter, Arial, sans-serif; background: var(--paper); color: var(--ink); }
-      header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 82px; padding: 18px 32px; background: rgba(243,241,236,.96); border-bottom: 1px solid var(--line); }
-      .brand { font-weight: 900; letter-spacing: .08em; font-size: 13px; line-height: 1.15; text-transform: uppercase; }
-      nav { display: flex; gap: 18px; font-size: 13px; font-weight: 800; }
-      main { max-width: 1180px; margin: 0 auto; padding: 78px 42px 96px; }
-      .eyebrow { color: var(--gold); font-size: 12px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 20px; }
-      h1 { max-width: 860px; margin: 0; font-size: clamp(42px, 7vw, 86px); line-height: .96; letter-spacing: 0; }
-      .intro { max-width: 720px; margin-top: 28px; color: var(--muted); font-size: 20px; line-height: 1.65; }
-      .body { max-width: 760px; margin-top: 44px; color: #354051; font-size: 17px; line-height: 1.8; white-space: pre-line; }
-      .meta { margin-top: 42px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-      .gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 46px; }
-      .gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: #fff; }
-      footer { background: #e6bd43; padding: 38px 42px; font-size: 14px; }
-      @media (max-width: 760px) {
-        header { padding: 16px 20px; }
-        nav { display: none; }
-        main { padding: 46px 24px 70px; }
-        .gallery { grid-template-columns: 1fr; }
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <div class="brand">Fiskum Plate &<br />Sveiseverksted AS</div>
-      <nav><span>Om oss</span><span>Tjenester</span><span>Referanser</span><span>Aktuelt</span></nav>
-    </header>
-    <main>
-      <div class="eyebrow">Live preview fra Sanity draft</div>
-      <h1>${escapeHtml(title)}</h1>
-      ${intro ? `<div class="intro">${escapeHtml(intro)}</div>` : ""}
-      ${body ? `<div class="body">${escapeHtml(body)}</div>` : ""}
-      ${images.length ? `<div class="gallery">${images.map((src) => `<img src="${src}" alt="" />`).join("")}</div>` : ""}
-      <div class="meta">Publisert URL: ${escapeHtml(route)}</div>
-    </main>
-    <footer>Pålitelig, erfaren og profesjonell partner innen stål og metallarbeid.</footer>
-  </body>
-</html>`;
-}
+  doc.documentElement.dataset.sanityLivePreview = "true";
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  const titleEl = doc.querySelector("title");
+  if (titleEl && title) titleEl.textContent = `${title} - Fiskum Plate og Sveiseverksted AS`;
+
+  const h1 = doc.querySelector("h1");
+  if (h1 && title) h1.textContent = title;
+
+  const currentCrumb = doc.querySelector('[aria-current="page"]');
+  if (currentCrumb && title) currentCrumb.textContent = title;
+
+  const descriptionMeta = doc.querySelector('meta[name="description"]');
+  if (descriptionMeta && intro) descriptionMeta.setAttribute("content", intro);
+
+  const lead =
+    doc.querySelector(".page-hero p") ||
+    doc.querySelector(".article-hero p") ||
+    doc.querySelector("main p");
+
+  if (lead && intro) lead.textContent = intro;
+
+  const notice = doc.createElement("div");
+  notice.textContent = `Live preview fra Sanity draft - ${route}`;
+  notice.setAttribute(
+    "style",
+    [
+      "position:fixed",
+      "right:16px",
+      "bottom:16px",
+      "z-index:99999",
+      "background:#111",
+      "color:#fff",
+      "font:700 12px/1.2 Arial,sans-serif",
+      "letter-spacing:.02em",
+      "padding:10px 12px",
+      "border-radius:999px",
+      "box-shadow:0 10px 28px rgba(0,0,0,.22)",
+    ].join(";"),
+  );
+  doc.body.append(notice);
+
+  if (documentType === "homePage") {
+    const homeTitle = getString(document, ["title"]);
+    const heroTitle = doc.querySelector(".hero h1, h1");
+    if (heroTitle && homeTitle) heroTitle.textContent = homeTitle;
+  }
+
+  return `<!doctype html>${doc.documentElement.outerHTML}`;
 }
 
 const shellStyle: CSSProperties = {
@@ -209,10 +184,43 @@ const iframeStyle: CSSProperties = {
 export function LivePreviewLayout(props: DocumentLayoutProps) {
   const state = useEditState(props.documentId, props.documentType);
   const document = state.draft ?? state.published;
-  const html = useMemo(
-    () => renderPreviewHtml(document, props.documentType),
+  const route = useMemo(
+    () => getRoute(document, props.documentType),
     [document, props.documentType],
   );
+  const [html, setHtml] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!previewTypes.has(props.documentType)) return;
+
+    const controller = new AbortController();
+    setIsLoading(true);
+
+    fetch(route, { cache: "no-store", signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Kunne ikke laste ${route}`);
+        return response.text();
+      })
+      .then((pageHtml) => {
+        setHtml(applyDraftToPageHtml(pageHtml, route, document, props.documentType));
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setHtml(`<!doctype html>
+<html lang="no">
+  <body style="font-family:Arial,sans-serif;padding:32px;background:#f3f1ec;color:#111">
+    <h1>Preview kunne ikke lastes</h1>
+    <p>${String(error instanceof Error ? error.message : error)}</p>
+  </body>
+</html>`);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [document, props.documentType, route]);
 
   if (!previewTypes.has(props.documentType)) {
     return props.renderDefault(props);
@@ -229,12 +237,15 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
                 Live preview
               </Text>
               <Text size={1} muted>
-                Oppdateres fra draft mens du skriver.
+                Viser faktisk nettside og oppdaterer draft-tekst mens du skriver.
               </Text>
             </Stack>
-            <Text size={1} muted>
-              {state.ready ? "Klar" : "Laster"}
-            </Text>
+            <Flex align="center" gap={2}>
+              {isLoading ? <Spinner muted /> : null}
+              <Text size={1} muted>
+                {state.ready ? route : "Laster"}
+              </Text>
+            </Flex>
           </Flex>
         </Card>
         <Box flex={1} style={{ minHeight: 0 }}>
