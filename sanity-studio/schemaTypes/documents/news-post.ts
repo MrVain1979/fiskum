@@ -46,6 +46,13 @@ export const newsPost = defineType({
       title: "Innhold",
       type: "richText",
     }),
+    defineField({
+      name: "pdfFiles",
+      title: "PDF-dokumenter",
+      description: "PDF-er som skal vises på nyhetssiden.",
+      type: "array",
+      of: [{ type: "pdfFile" }],
+    }),
   ],
   preview: {
     select: {

@@ -1123,6 +1123,61 @@ textarea {
   box-shadow: 0 16px 42px rgba(17, 24, 32, 0.1);
 }
 
+.pdf-downloads {
+  display: grid;
+  gap: 16px;
+  margin-top: 34px;
+  padding: clamp(22px, 4vw, 30px);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.pdf-downloads h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.pdf-download-list {
+  display: grid;
+  gap: 10px;
+}
+
+.pdf-download {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  min-height: 66px;
+  padding: 14px 56px 14px 18px;
+  background: #f8f7f2;
+  border: 1px solid rgba(18, 18, 18, 0.1);
+  border-radius: var(--radius);
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s var(--ease);
+}
+
+.pdf-download::after {
+  content: "PDF";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  color: var(--accent-dark);
+  font-size: 0.76rem;
+  font-weight: 900;
+  transform: translateY(-50%);
+}
+
+.pdf-download:hover,
+.pdf-download:focus-visible {
+  border-color: rgba(21, 83, 127, 0.34);
+  box-shadow: 0 14px 36px rgba(17, 24, 32, 0.08);
+  transform: translateY(-2px);
+}
+
+.pdf-download span {
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
 .back-link {
   display: inline-flex;
   margin-top: 26px;

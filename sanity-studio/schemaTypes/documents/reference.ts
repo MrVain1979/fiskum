@@ -56,6 +56,13 @@ export const projectReference = defineType({
       type: "array",
       of: [{ type: "imageWithAlt" }],
     }),
+    defineField({
+      name: "pdfFiles",
+      title: "PDF-dokumenter",
+      description: "PDF-er som skal vises på referansesiden.",
+      type: "array",
+      of: [{ type: "pdfFile" }],
+    }),
   ],
   preview: {
     select: {

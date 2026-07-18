@@ -17,6 +17,17 @@ type PortableTextBlock = {
   children?: Array<{ text?: string }>;
 };
 
+type PdfFile = {
+  title?: string;
+  description?: string;
+  file?: {
+    asset?: {
+      _ref?: string;
+      url?: string;
+    };
+  };
+};
+
 function getValue(document: Partial<SanityDocument> | null, path: string) {
   return path.split(".").reduce<unknown>((value, key) => {
     if (!value || typeof value !== "object") return undefined;
@@ -79,6 +90,29 @@ function textFromPortableText(value: unknown) {
     .join("\n\n");
 }
 
+function fileUrlFromRef(ref?: string) {
+  if (!ref?.startsWith("file-")) return "";
+  const withoutPrefix = ref.slice("file-".length);
+  const lastDash = withoutPrefix.lastIndexOf("-");
+  if (lastDash === -1) return "";
+  const id = withoutPrefix.slice(0, lastDash);
+  const extension = withoutPrefix.slice(lastDash + 1);
+  return `https://cdn.sanity.io/files/qgyys6fw/production/${id}.${extension}`;
+}
+
+function getPdfFiles(document: Partial<SanityDocument> | null) {
+  const pdfFiles = getValue(document, "pdfFiles");
+  if (!Array.isArray(pdfFiles)) return [];
+
+  return pdfFiles
+    .map((file: PdfFile) => ({
+      title: file.title || "Last ned PDF",
+      description: file.description || "",
+      url: file.file?.asset?.url || fileUrlFromRef(file.file?.asset?._ref),
+    }))
+    .filter((file) => file.url);
+}
+
 function plainText(document: Partial<SanityDocument> | null) {
   return (
     getString(document, ["summary", "excerpt", "description"]) ||
@@ -96,6 +130,7 @@ function applyDraftToPageHtml(
   const doc = parser.parseFromString(html, "text/html");
   const title = getString(document, ["title", "internalTitle"]);
   const intro = plainText(document);
+  const pdfFiles = getPdfFiles(document);
   const base = doc.createElement("base");
 
   base.href = window.location.origin;
@@ -148,7 +183,40 @@ function applyDraftToPageHtml(
     if (heroTitle && homeTitle) heroTitle.textContent = homeTitle;
   }
 
+  if (pdfFiles.length) {
+    const target =
+      doc.querySelector(".content-stack") ||
+      doc.querySelector(".page-content") ||
+      doc.querySelector("main");
+
+    if (target) {
+      const section = doc.createElement("section");
+      section.className = "pdf-downloads is-visible";
+      section.setAttribute("aria-label", "PDF-dokumenter");
+      section.innerHTML = `<h2>Dokumenter</h2><div class="pdf-download-list">${pdfFiles
+        .map(
+          (file) =>
+            `<a class="pdf-download" href="${file.url}" target="_blank" rel="noopener"><strong>${escapeHtml(
+              file.title,
+            )}</strong>${
+              file.description ? `<span>${escapeHtml(file.description)}</span>` : ""
+            }</a>`,
+        )
+        .join("")}</div>`;
+      target.append(section);
+    }
+  }
+
   return `<!doctype html>${doc.documentElement.outerHTML}`;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 const shellStyle: CSSProperties = {

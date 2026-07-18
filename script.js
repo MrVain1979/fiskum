@@ -39,6 +39,105 @@ window.addEventListener("resize", () => {
 });
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const sanityProjectId = "qgyys6fw";
+const sanityDataset = "production";
+
+function getCurrentSlugCandidates() {
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+  const segments = pathname.split("/").filter(Boolean);
+  const lastSegment = segments.at(-1) || "";
+  const candidates = new Set([pathname, `${pathname}/`]);
+
+  if (pathname === "/") {
+    candidates.add("/");
+  }
+
+  if (lastSegment) {
+    candidates.add(lastSegment);
+    candidates.add(`/${lastSegment}`);
+  }
+
+  return Array.from(candidates);
+}
+
+function getPdfQueryUrl() {
+  const query = `*[
+    _type in ["page", "service", "projectReference", "newsPost"] &&
+    slug.current in $slugs &&
+    count(pdfFiles[]) > 0
+  ][0]{
+    "pdfFiles": pdfFiles[]{
+      title,
+      description,
+      "url": file.asset->url
+    }
+  }`;
+  const params = encodeURIComponent(JSON.stringify({ slugs: getCurrentSlugCandidates() }));
+  return `https://${sanityProjectId}.apicdn.sanity.io/v2024-06-01/data/query/${sanityDataset}?query=${encodeURIComponent(query)}&%24slugs=${params}`;
+}
+
+function renderPdfDownloads(pdfFiles) {
+  const validFiles = (pdfFiles || []).filter((file) => file?.url);
+  if (!validFiles.length) return;
+
+  const target =
+    document.querySelector(".content-stack") ||
+    document.querySelector(".page-content") ||
+    document.querySelector("main");
+  if (!target) return;
+
+  const section = document.createElement("section");
+  section.className = "pdf-downloads reveal";
+  section.setAttribute("aria-label", "PDF-dokumenter");
+
+  const title = document.createElement("h2");
+  title.textContent = "Dokumenter";
+  section.append(title);
+
+  const list = document.createElement("div");
+  list.className = "pdf-download-list";
+
+  validFiles.forEach((file) => {
+    const link = document.createElement("a");
+    link.className = "pdf-download";
+    link.href = file.url;
+    link.target = "_blank";
+    link.rel = "noopener";
+
+    const label = document.createElement("strong");
+    label.textContent = file.title || "Last ned PDF";
+    link.append(label);
+
+    if (file.description) {
+      const description = document.createElement("span");
+      description.textContent = file.description;
+      link.append(description);
+    }
+
+    list.append(link);
+  });
+
+  section.append(list);
+  target.append(section);
+
+  if (reduceMotion) {
+    section.classList.add("is-visible");
+  } else {
+    window.requestAnimationFrame(() => section.classList.add("is-visible"));
+  }
+}
+
+async function loadPdfDownloads() {
+  try {
+    const response = await fetch(getPdfQueryUrl());
+    if (!response.ok) return;
+    const payload = await response.json();
+    renderPdfDownloads(payload?.result?.pdfFiles);
+  } catch {
+    // PDF downloads are optional; keep the page quiet if Sanity is unavailable.
+  }
+}
+
 const revealSelectors = [
   ".page-hero > *",
   ".hero-copy > *",
@@ -58,6 +157,7 @@ const revealSelectors = [
   ".page-grid > *",
   ".page-card",
   ".reference-card",
+  ".pdf-downloads",
   ".gallery img",
 ].join(",");
 
@@ -188,3 +288,5 @@ document.addEventListener("submit", (event) => {
   event.preventDefault();
   alert("Skjemaet er ikke konfigurert for sending enda.");
 });
+
+loadPdfDownloads();

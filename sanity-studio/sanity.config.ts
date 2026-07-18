@@ -46,11 +46,6 @@ export default defineConfig({
       assetSources: (sources) =>
         sources.filter((source) => source.name !== "sanity-default"),
     },
-    // Disable the default for file assets
-    file: {
-      assetSources: (sources) =>
-        sources.filter((source) => source.name !== "sanity-default"),
-    },
   },
   document: {
     components: {

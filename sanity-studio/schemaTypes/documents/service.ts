@@ -43,6 +43,13 @@ export const service = defineType({
       of: [{ type: "imageWithAlt" }],
     }),
     defineField({
+      name: "pdfFiles",
+      title: "PDF-dokumenter",
+      description: "PDF-er som skal vises på tjenestesiden.",
+      type: "array",
+      of: [{ type: "pdfFile" }],
+    }),
+    defineField({
       name: "seo",
       title: "SEO",
       type: "object",
