@@ -1191,6 +1191,21 @@ textarea {
   margin-top: 1rem;
 }
 
+.cms-shell {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.cms-loading,
+.cms-error {
+  min-height: 55vh;
+}
+
+.cms-error p {
+  max-width: 720px;
+  color: var(--muted);
+}
+
 .cms-buttons {
   display: flex;
   flex-wrap: wrap;

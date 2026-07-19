@@ -1,7 +1,15 @@
 import { defineCliConfig } from "sanity/cli";
 
-const projectId = process.env.SANITY_STUDIO_PROJECT_ID ?? "qgyys6fw";
-const dataset = process.env.SANITY_STUDIO_DATASET ?? "production";
+function requiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+const projectId = requiredEnv("SANITY_STUDIO_PROJECT_ID");
+const dataset = requiredEnv("SANITY_STUDIO_DATASET");
 const host = process.env.HOST_NAME;
 const productionHostName = process.env.SANITY_STUDIO_PRODUCTION_HOSTNAME;
 

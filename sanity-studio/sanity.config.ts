@@ -15,10 +15,17 @@ import { schemaTypes } from "./schemaTypes";
 import { structure } from "./structure";
 import { createPageTemplate } from "./utils/helper";
 
-const projectId = process.env.SANITY_STUDIO_PROJECT_ID ?? "qgyys6fw";
-const dataset = process.env.SANITY_STUDIO_DATASET ?? "production";
-const title =
-  process.env.SANITY_STUDIO_TITLE ?? "Fiskum Plate og Sveiseverksted";
+function requiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+const projectId = requiredEnv("SANITY_STUDIO_PROJECT_ID");
+const dataset = requiredEnv("SANITY_STUDIO_DATASET");
+const title = requiredEnv("SANITY_STUDIO_TITLE");
 
 export default defineConfig({
   name: "default",

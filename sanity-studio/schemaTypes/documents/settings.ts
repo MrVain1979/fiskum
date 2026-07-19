@@ -54,7 +54,6 @@ export const settings = defineType({
       name: "companyName",
       type: "string",
       title: "Firmanavn",
-      initialValue: "Fiskum Plate & Sveiseverksted AS",
     }),
     defineField({
       name: "siteTitle",
@@ -80,13 +79,11 @@ export const settings = defineType({
       name: "phone",
       type: "string",
       title: "Telefon",
-      initialValue: "32 75 06 77",
     }),
     defineField({
       name: "contactEmail",
       type: "string",
       title: "E-post",
-      initialValue: "post@fiskum-sveis.no",
       validation: (rule) => rule.email(),
     }),
     defineField({
@@ -94,10 +91,10 @@ export const settings = defineType({
       type: "object",
       title: "Adresse",
       fields: [
-        defineField({ name: "street", title: "Gateadresse", type: "string", initialValue: "Kongsbergveien 791" }),
-        defineField({ name: "postalCode", title: "Postnummer", type: "string", initialValue: "3322" }),
-        defineField({ name: "city", title: "Poststed", type: "string", initialValue: "Fiskum" }),
-        defineField({ name: "country", title: "Land", type: "string", initialValue: "Norge" }),
+        defineField({ name: "street", title: "Gateadresse", type: "string" }),
+        defineField({ name: "postalCode", title: "Postnummer", type: "string" }),
+        defineField({ name: "city", title: "Poststed", type: "string" }),
+        defineField({ name: "country", title: "Land", type: "string" }),
       ],
     }),
     socialLinks,

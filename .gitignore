@@ -2,3 +2,5 @@
 .tmp-studio-output/
 studio/static/
 studio-build/
+sanity-env.js
+apps/studio/sanity-env.js

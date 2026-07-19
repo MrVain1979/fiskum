@@ -12,6 +12,9 @@ const previewTypes = new Set([
   "newsPost",
 ]);
 
+const sanityProjectId = process.env.SANITY_STUDIO_PROJECT_ID;
+const sanityDataset = process.env.SANITY_STUDIO_DATASET;
+
 type PortableTextBlock = {
   _type?: string;
   style?: string;
@@ -99,23 +102,25 @@ function textFromPortableText(value: unknown) {
 }
 
 function fileUrlFromRef(ref?: string) {
+  if (!sanityProjectId || !sanityDataset) return "";
   if (!ref?.startsWith("file-")) return "";
   const withoutPrefix = ref.slice("file-".length);
   const lastDash = withoutPrefix.lastIndexOf("-");
   if (lastDash === -1) return "";
   const id = withoutPrefix.slice(0, lastDash);
   const extension = withoutPrefix.slice(lastDash + 1);
-  return `https://cdn.sanity.io/files/qgyys6fw/production/${id}.${extension}`;
+  return `https://cdn.sanity.io/files/${sanityProjectId}/${sanityDataset}/${id}.${extension}`;
 }
 
 function imageUrlFromRef(ref?: string) {
+  if (!sanityProjectId || !sanityDataset) return "";
   if (!ref?.startsWith("image-")) return "";
   const withoutPrefix = ref.slice("image-".length);
   const lastDash = withoutPrefix.lastIndexOf("-");
   if (lastDash === -1) return "";
   const id = withoutPrefix.slice(0, lastDash);
   const extension = withoutPrefix.slice(lastDash + 1);
-  return `https://cdn.sanity.io/images/qgyys6fw/production/${id}.${extension}`;
+  return `https://cdn.sanity.io/images/${sanityProjectId}/${sanityDataset}/${id}.${extension}`;
 }
 
 function getPdfFiles(document: Partial<SanityDocument> | null) {
@@ -209,7 +214,7 @@ function applyDraftToPageHtml(
   doc.querySelectorAll("script").forEach((script) => script.remove());
 
   const titleEl = doc.querySelector("title");
-  if (titleEl && title) titleEl.textContent = `${title} - Fiskum Plate og Sveiseverksted AS`;
+  if (titleEl && title) titleEl.textContent = title;
 
   const h1 = doc.querySelector("h1");
   if (h1 && title) h1.textContent = title;
