@@ -1178,6 +1178,26 @@ textarea {
   font-size: 0.94rem;
 }
 
+.cms-block {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.cms-block + .cms-block {
+  margin-top: clamp(2.5rem, 6vw, 5rem);
+}
+
+.cms-block .page-cards {
+  margin-top: 1rem;
+}
+
+.cms-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
 .back-link {
   display: inline-flex;
   margin-top: 26px;

@@ -14,7 +14,15 @@ const previewTypes = new Set([
 
 type PortableTextBlock = {
   _type?: string;
-  children?: Array<{ text?: string }>;
+  style?: string;
+  listItem?: string;
+  children?: Array<{ text?: string; marks?: string[] }>;
+  asset?: {
+    _ref?: string;
+    url?: string;
+  };
+  alt?: string;
+  caption?: string;
 };
 
 type PdfFile = {
@@ -100,6 +108,16 @@ function fileUrlFromRef(ref?: string) {
   return `https://cdn.sanity.io/files/qgyys6fw/production/${id}.${extension}`;
 }
 
+function imageUrlFromRef(ref?: string) {
+  if (!ref?.startsWith("image-")) return "";
+  const withoutPrefix = ref.slice("image-".length);
+  const lastDash = withoutPrefix.lastIndexOf("-");
+  if (lastDash === -1) return "";
+  const id = withoutPrefix.slice(0, lastDash);
+  const extension = withoutPrefix.slice(lastDash + 1);
+  return `https://cdn.sanity.io/images/qgyys6fw/production/${id}.${extension}`;
+}
+
 function getPdfFiles(document: Partial<SanityDocument> | null) {
   const pdfFiles = getValue(document, "pdfFiles");
   if (!Array.isArray(pdfFiles)) return [];
@@ -120,6 +138,56 @@ function plainText(document: Partial<SanityDocument> | null) {
   );
 }
 
+function renderPortableText(value: unknown) {
+  if (!Array.isArray(value)) return "";
+
+  return value
+    .map((block: PortableTextBlock) => {
+      if (block?._type === "image" || block?._type === "imageWithAlt") {
+        const src = block.asset?.url || imageUrlFromRef(block.asset?._ref);
+        if (!src) return "";
+        const alt = block.alt || block.caption || "";
+        const caption = block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : "";
+        return `<figure><img src="${src}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async">${caption}</figure>`;
+      }
+
+      if (block?._type !== "block") return "";
+      const text = (block.children || [])
+        .map((child) => {
+          let value = escapeHtml(child.text || "");
+          const marks = child.marks || [];
+          if (marks.includes("strong")) value = `<strong>${value}</strong>`;
+          if (marks.includes("em")) value = `<em>${value}</em>`;
+          return value;
+        })
+        .join("");
+
+      if (!text) return "";
+      if (block.listItem) return `<li>${text}</li>`;
+      if (["h2", "h3", "h4"].includes(block.style || "")) return `<${block.style}>${text}</${block.style}>`;
+      return `<p>${text}</p>`;
+    })
+    .join("");
+}
+
+function renderDraftGallery(document: Partial<SanityDocument> | null) {
+  const gallery = getValue(document, "gallery");
+  if (!Array.isArray(gallery)) return "";
+
+  const images = gallery
+    .map((image: PortableTextBlock) => ({
+      alt: image.alt || image.caption || "",
+      url: image.asset?.url || imageUrlFromRef(image.asset?._ref),
+    }))
+    .filter((image) => image.url);
+
+  if (!images.length) return "";
+
+  return `<div class="gallery">${images
+    .map((image) => `<img src="${image.url}" alt="${escapeHtml(image.alt)}" loading="lazy" decoding="async">`)
+    .join("")}</div>`;
+}
+
 function applyDraftToPageHtml(
   html: string,
   route: string,
@@ -137,6 +205,8 @@ function applyDraftToPageHtml(
   doc.head.prepend(base);
 
   doc.documentElement.dataset.sanityLivePreview = "true";
+
+  doc.querySelectorAll("script").forEach((script) => script.remove());
 
   const titleEl = doc.querySelector("title");
   if (titleEl && title) titleEl.textContent = `${title} - Fiskum Plate og Sveiseverksted AS`;
@@ -156,6 +226,17 @@ function applyDraftToPageHtml(
     doc.querySelector("main p");
 
   if (lead && intro) lead.textContent = intro;
+
+  const contentStack = doc.querySelector(".content-stack");
+  const draftBody = [
+    renderPortableText(getValue(document, "body")),
+    renderPortableText(getValue(document, "richText")),
+    renderDraftGallery(document),
+  ].join("");
+
+  if (contentStack && draftBody.trim()) {
+    contentStack.innerHTML = draftBody;
+  }
 
   const notice = doc.createElement("div");
   notice.textContent = `Live preview fra Sanity draft - ${route}`;
