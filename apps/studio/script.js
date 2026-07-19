@@ -1,24 +1,6 @@
 document.documentElement.classList.add("js");
 
 const root = document.querySelector("#site-root");
-const config = window.FISKUM_SANITY_CONFIG;
-
-function requireConfig() {
-  const missing = ["projectId", "dataset", "apiVersion"].filter((key) => !config?.[key]);
-  if (missing.length) {
-    throw new Error(`Mangler Sanity-konfigurasjon: ${missing.join(", ")}`);
-  }
-  return config;
-}
-
-function queryUrl(query, params = {}) {
-  const { projectId, dataset, apiVersion } = requireConfig();
-  const encodedParams = Object.entries(params)
-    .map(([key, value]) => `&%24${encodeURIComponent(key)}=${encodeURIComponent(JSON.stringify(value))}`)
-    .join("");
-
-  return `https://${projectId}.api.sanity.io/v${apiVersion}/data/query/${dataset}?query=${encodeURIComponent(query)}${encodedParams}`;
-}
 
 function escapeHtml(value = "") {
   return String(value)
@@ -34,94 +16,6 @@ function normalizePath(value = "") {
   if (value.startsWith("http") || value.startsWith("#") || value.startsWith("mailto:") || value.startsWith("tel:")) return value;
   const path = value.startsWith("/") ? value : `/${value}`;
   return path.endsWith("/") ? path : `${path}/`;
-}
-
-function currentSlugs() {
-  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
-  const segments = pathname.split("/").filter(Boolean);
-  const last = segments.at(-1) || "";
-  const values = new Set([pathname, `${pathname}/`]);
-
-  if (pathname === "/") values.add("/");
-  if (last) {
-    values.add(last);
-    values.add(`/${last}`);
-  }
-
-  return Array.from(values);
-}
-
-function contentQuery() {
-  return `{
-    "settings": *[_type == "settings"][0]{
-      companyName, siteTitle, siteDescription, phone, contactEmail, address, socialLinks,
-      "logoUrl": logo.asset->url
-    },
-    "navbar": *[_type == "navbar"][0]{
-      columns[]{
-        _type, name, title,
-        url{type, external, internal->{_type, "slug": slug.current}},
-        links[]{name, url{type, external, internal->{_type, "slug": slug.current}}}
-      }
-    },
-    "footer": *[_type == "footer"][0]{
-      subtitle,
-      columns[]{title, links[]{name, url{type, external, internal->{_type, "slug": slug.current}}}}
-    },
-    "document": coalesce(
-      *[_type == "homePage" && "/" in $slugs][0]{
-        _type, title, description, "slug": slug.current,
-        pageBuilder[]{
-          ...,
-          image{alt, caption, "url": asset->url},
-          richText[]{..., asset->{url}},
-          cards[]{..., image{alt, "url": asset->url}, richText[]{..., asset->{url}}},
-          faqs[]->{title, richText[]{..., asset->{url}}},
-          buttons[]{text, variant, url{type, external, internal->{_type, "slug": slug.current}}}
-        },
-        "pdfFiles": pdfFiles[]{title, description, "url": file.asset->url}
-      },
-      *[$isReferencePath && _type == "projectReference" && slug.current in $slugs][0]{
-        _type, internalTitle, title, summary, category, "slug": slug.current,
-        body[]{..., asset->{url}},
-        gallery[]{alt, caption, "url": asset->url},
-        "pdfFiles": pdfFiles[]{title, description, "url": file.asset->url}
-      },
-      *[$isNewsPath && _type == "newsPost" && slug.current in $slugs][0]{
-        _type, internalTitle, title, excerpt, publishedAt, "slug": slug.current,
-        mainImage{alt, caption, "url": asset->url},
-        body[]{..., asset->{url}},
-        "pdfFiles": pdfFiles[]{title, description, "url": file.asset->url}
-      },
-      *[_type in ["page", "service", "projectReference", "newsPost"] && slug.current in $slugs][0]{
-        _type, internalTitle, title, description, summary, excerpt, publishedAt, "slug": slug.current,
-        image{alt, caption, "url": asset->url},
-        mainImage{alt, caption, "url": asset->url},
-        body[]{..., asset->{url}},
-        richText[]{..., asset->{url}},
-        gallery[]{alt, caption, "url": asset->url},
-        pageBuilder[]{
-          ...,
-          image{alt, caption, "url": asset->url},
-          richText[]{..., asset->{url}},
-          cards[]{..., image{alt, "url": asset->url}, richText[]{..., asset->{url}}},
-          faqs[]->{title, richText[]{..., asset->{url}}},
-          buttons[]{text, variant, url{type, external, internal->{_type, "slug": slug.current}}}
-        },
-        "pdfFiles": pdfFiles[]{title, description, "url": file.asset->url}
-      }
-    ),
-    "services": *[_type == "service"] | order(_createdAt asc){
-      title, internalTitle, summary, "slug": slug.current, "image": gallery[0]{alt, "url": asset->url}
-    },
-    "references": *[_type == "projectReference"] | order(_createdAt asc){
-      title, internalTitle, summary, category, "slug": slug.current, "image": gallery[0]{alt, "url": asset->url}
-    },
-    "newsPosts": *[_type == "newsPost"] | order(publishedAt desc){
-      title, internalTitle, excerpt, publishedAt, "slug": slug.current, "image": mainImage{alt, "url": asset->url}
-    },
-    "faqs": *[_type == "faq"] | order(_createdAt asc){title, richText[]{..., asset->{url}}}
-  }`;
 }
 
 function resolveLink(url) {
@@ -358,15 +252,12 @@ function initInteractions() {
 async function boot() {
   if (!root) return;
   try {
-    requireConfig();
-    const pathname = window.location.pathname;
-    const response = await fetch(queryUrl(contentQuery(), {
-      slugs: currentSlugs(),
-      isReferencePath: pathname.startsWith("/referanser/") && pathname !== "/referanser/",
-      isNewsPath: /^\/\d{4}\/\d{2}\/\d{2}\//.test(pathname),
-    }), { cache: "no-store" });
+    const response = await fetch(`/api/content?path=${encodeURIComponent(window.location.pathname)}`);
 
-    if (!response.ok) throw new Error(`Sanity svarte ${response.status}`);
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => null);
+      throw new Error(errorPayload?.message || `Sanity svarte ${response.status}`);
+    }
     const payload = await response.json();
     const data = payload.result;
 
