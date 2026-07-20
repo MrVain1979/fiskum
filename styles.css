@@ -691,14 +691,30 @@ cite {
 
 .contact {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(320px, 0.7fr);
-  gap: clamp(30px, 7vw, 88px);
-  width: min(var(--max), calc(100% - (var(--gutter) * 2)));
+  grid-template-columns: minmax(280px, 0.78fr) minmax(420px, 1fr);
+  gap: clamp(34px, 6vw, 82px);
+  width: 100%;
   margin: clamp(10px, 2vw, 24px) auto clamp(54px, 8vw, 92px);
   padding: clamp(34px, 5vw, 64px);
   background: var(--dark-panel);
   color: #fff;
   border-radius: var(--radius);
+}
+
+.contact-page {
+  width: min(1180px, calc(100% - (var(--gutter) * 2)));
+}
+
+.contact-copy {
+  min-width: 0;
+}
+
+.contact-copy h2 {
+  max-width: 520px;
+}
+
+.contact-copy p:not(.eyebrow) {
+  max-width: 360px;
 }
 
 .contact p:not(.eyebrow) {
@@ -1531,6 +1547,11 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .contact-copy h2,
+  .contact-copy p:not(.eyebrow) {
+    max-width: none;
+  }
+
   .services,
   .process-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -1695,7 +1716,7 @@ textarea {
   }
 
   .contact {
-    width: calc(100% - 24px);
+    width: 100%;
     padding: 26px;
   }
 

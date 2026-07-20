@@ -285,6 +285,9 @@ function renderPage(data, path) {
   const title = pageTitle(doc);
   const lead = pageLead(doc);
   const body = [renderBlocks(doc.body), renderBlocks(doc.richText), renderBuilder(doc.pageBuilder), renderGallery(doc.gallery), renderPdfs(doc.pdfFiles), path === "/kontakt-oss/" ? renderContactForm(data.settings) : ""].join("");
+  if (path === "/kontakt-oss/") {
+    return `<main><section class="page-hero">${breadcrumbHtml(doc, path)}<p class="eyebrow">${escapeHtml(data.settings?.companyName || "")}</p><h1>${escapeHtml(title)}</h1>${lead ? `<p>${escapeHtml(lead)}</p>` : ""}</section><section class="page-content contact-page"><div class="content-stack">${body}</div></section></main>`;
+  }
   return `<main><section class="page-hero">${breadcrumbHtml(doc, path)}<p class="eyebrow">${escapeHtml(data.settings?.companyName || "")}</p><h1>${escapeHtml(title)}</h1>${lead ? `<p>${escapeHtml(lead)}</p>` : ""}</section><section class="page-content"><div class="page-grid"><div class="content-stack">${body}</div>${renderSidePanel(data, path)}</div>${renderContextList(data, path)}</section></main>`;
 }
 
