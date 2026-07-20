@@ -5,3 +5,11 @@ studio-build/
 sanity-env.js
 apps/studio/sanity-env.js
 dist/
+apps/studio/dist/
+node_modules/
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.pnpm-*/
+.home-vercel/
+.appdata-vercel/
+.localappdata-vercel/

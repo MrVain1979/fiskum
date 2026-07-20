@@ -3,8 +3,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const outputRoot = join(root, "dist");
-const mirrors = ["", "apps/studio", "dist"];
+const distMirrors = ["dist", "apps/studio/dist"];
+const mirrors = ["", "apps/studio", ...distMirrors];
 const generatedRoots = [
   "2026",
   "aktuelt",
@@ -386,7 +386,7 @@ function cmsErrorHtml(issues) {
 }
 
 function fileForRoute(route, mirror) {
-  const base = mirror === "dist" ? outputRoot : mirror ? join(root, mirror) : root;
+  const base = mirror ? join(root, mirror) : root;
   if (route === "/") return join(base, "index.html");
   return join(base, route.replace(/^\/+|\/+$/g, ""), "index.html");
 }
@@ -400,9 +400,11 @@ async function writeRoute(route, html) {
 }
 
 async function cleanGeneratedRoutes() {
-  await rm(outputRoot, { recursive: true, force: true });
+  for (const mirror of distMirrors) {
+    await rm(join(root, mirror), { recursive: true, force: true });
+  }
   for (const mirror of mirrors) {
-    if (mirror === "dist") continue;
+    if (distMirrors.includes(mirror)) continue;
     const base = mirror ? join(root, mirror) : root;
     for (const routeRoot of generatedRoots) {
       await rm(join(base, routeRoot), { recursive: true, force: true });
@@ -420,11 +422,14 @@ async function exists(path) {
 }
 
 async function prepareDist() {
-  await mkdir(outputRoot, { recursive: true });
   const entries = ["styles.css", "script.js", "favicon.ico", "assets", "studio", "static"];
-  for (const entry of entries) {
-    const source = join(root, entry);
-    if (await exists(source)) await cp(source, join(outputRoot, entry), { recursive: true, force: true });
+  for (const mirror of distMirrors) {
+    const outputRoot = join(root, mirror);
+    await mkdir(outputRoot, { recursive: true });
+    for (const entry of entries) {
+      const source = join(root, entry);
+      if (await exists(source)) await cp(source, join(outputRoot, entry), { recursive: true, force: true });
+    }
   }
 }
 
