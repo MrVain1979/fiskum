@@ -8,6 +8,17 @@ import { fiskumSeedDocuments } from "./fiskumSeed";
 type ImportState = "idle" | "running" | "done" | "error";
 
 const apiVersion = "2025-06-01";
+const importOrder: Record<string, number> = {
+  settings: 0,
+  page: 1,
+  service: 1,
+  projectReference: 2,
+  newsPost: 2,
+  faq: 2,
+  footer: 3,
+  navbar: 3,
+  homePage: 4,
+};
 
 function isObject(value: unknown): value is Record<string, any> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -56,7 +67,13 @@ function ImportContentTool() {
   const client = useClient({ apiVersion });
   const [state, setState] = useState<ImportState>("idle");
   const [log, setLog] = useState<string[]>([]);
-  const documents = useMemo(() => fiskumSeedDocuments, []);
+  const documents = useMemo(
+    () =>
+      [...fiskumSeedDocuments].sort(
+        (a, b) => (importOrder[a._type] ?? 50) - (importOrder[b._type] ?? 50)
+      ),
+    []
+  );
 
   const append = (message: string) => setLog((current) => [...current, message]);
 
