@@ -1,5 +1,5 @@
 {
   "scripts": {
-    "build": "node scripts/write-sanity-env.mjs"
+    "build": "node scripts/build-static.mjs"
   }
 }
