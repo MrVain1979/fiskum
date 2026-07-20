@@ -1,9 +1,10 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const mirrors = ["", "apps/studio"];
+const outputRoot = join(root, "dist");
+const mirrors = ["", "apps/studio", "dist"];
 const generatedRoots = [
   "2026",
   "aktuelt",
@@ -142,7 +143,7 @@ function renderBuilder(blocks = []) {
 function renderGallery(gallery = []) {
   const images = (gallery || []).filter((image) => image?.url);
   if (!images.length) return "";
-  return `<div class="gallery">${images.map((image) => `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt || image.caption || "")}" loading="lazy" decoding="async">`).join("")}</div>`;
+  return `<section class="gallery-section"><h2>Galleri</h2><div class="gallery">${images.map((image) => `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt || image.caption || "")}" loading="lazy" decoding="async">`).join("")}</div></section>`;
 }
 
 function renderHero(data) {
@@ -385,7 +386,7 @@ function cmsErrorHtml(issues) {
 }
 
 function fileForRoute(route, mirror) {
-  const base = mirror ? join(root, mirror) : root;
+  const base = mirror === "dist" ? outputRoot : mirror ? join(root, mirror) : root;
   if (route === "/") return join(base, "index.html");
   return join(base, route.replace(/^\/+|\/+$/g, ""), "index.html");
 }
@@ -399,11 +400,31 @@ async function writeRoute(route, html) {
 }
 
 async function cleanGeneratedRoutes() {
+  await rm(outputRoot, { recursive: true, force: true });
   for (const mirror of mirrors) {
+    if (mirror === "dist") continue;
     const base = mirror ? join(root, mirror) : root;
     for (const routeRoot of generatedRoots) {
       await rm(join(base, routeRoot), { recursive: true, force: true });
     }
+  }
+}
+
+async function exists(path) {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function prepareDist() {
+  await mkdir(outputRoot, { recursive: true });
+  const entries = ["styles.css", "script.js", "favicon.ico", "assets", "studio", "static"];
+  for (const entry of entries) {
+    const source = join(root, entry);
+    if (await exists(source)) await cp(source, join(outputRoot, entry), { recursive: true, force: true });
   }
 }
 
@@ -422,6 +443,7 @@ async function build() {
 
   const issues = validateContent(data, documents);
   await cleanGeneratedRoutes();
+  await prepareDist();
 
   if (issues.length) {
     const html = cmsErrorHtml(issues);
