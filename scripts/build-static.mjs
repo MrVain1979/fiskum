@@ -118,6 +118,34 @@ function renderImageCard(card) {
   return `<a class="page-card" href="${escapeHtml(href)}">${image}<h3>${escapeHtml(card.title || "")}</h3><p>${escapeHtml(card.description || "")}</p></a>`;
 }
 
+function renderFeatureCardMarker(card, index) {
+  const svg = typeof card?.icon?.svg === "string" ? card.icon.svg.trim() : "";
+  if (svg.startsWith("<svg")) {
+    return `<span class="feature-card-icon" aria-hidden="true">${svg}</span>`;
+  }
+
+  return `<span class="feature-card-index" aria-hidden="true">${String(index + 1).padStart(2, "0")}</span>`;
+}
+
+function serviceIconSvg(service) {
+  const cmsSvg = typeof service?.icon?.svg === "string" ? service.icon.svg.trim() : "";
+  if (cmsSvg.startsWith("<svg")) return cmsSvg;
+
+  const slug = normalizePath(service?.slug);
+  const icons = {
+    "/stalbygg/": '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="30" height="30" stroke="currentColor" stroke-width="2.5"/><path d="M9 24h30M24 9v30" stroke="currentColor" stroke-width="2.5"/></svg>',
+    "/vegger/": '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 23 24 11l16 12" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M14 22v17h20V22" stroke="currentColor" stroke-width="2.5"/><path d="M18 28h12M18 33h12" stroke="currentColor" stroke-width="2.5"/></svg>',
+    "/broer/": '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 30c4-9 10-14 17-14s13 5 17 14" stroke="currentColor" stroke-width="2.5"/><path d="M8 33h32M13 33v5M20 33v5M28 33v5M35 33v5" stroke="currentColor" stroke-width="2.5"/></svg>',
+    "/trapper/": '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 36h8v-6h8v-6h8v-6" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M13 17 31 35" stroke="currentColor" stroke-width="2.5"/></svg>',
+  };
+
+  return icons[slug] || '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 14h28v20H10z" stroke="currentColor" stroke-width="2.5"/><path d="M10 22h28" stroke="currentColor" stroke-width="2.5"/></svg>';
+}
+
+function renderServiceCard(service) {
+  return `<a class="service-card" href="${escapeHtml(normalizePath(service.slug))}"><span class="service-icon" aria-hidden="true">${serviceIconSvg(service)}</span><h3>${escapeHtml(pageTitle(service))}</h3><p>${escapeHtml(service.summary || "")}</p></a>`;
+}
+
 function renderBuilder(blocks = []) {
   if (!Array.isArray(blocks)) return "";
   return blocks
@@ -127,7 +155,7 @@ function renderBuilder(blocks = []) {
         return `<section class="section cms-block">${block.eyebrow || block.badge ? `<p class="eyebrow">${escapeHtml(block.eyebrow || block.badge)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}${renderButtons(block.buttons)}</section>`;
       }
       if (block._type === "featureCardsIcon") {
-        return `<section class="section cms-block">${block.eyebrow ? `<p class="eyebrow">${escapeHtml(block.eyebrow)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}<div class="page-cards">${(block.cards || []).map((card) => `<article class="page-card"><h3>${escapeHtml(card.title || "")}</h3>${renderBlocks(card.richText)}</article>`).join("")}</div></section>`;
+        return `<section class="section cms-block">${block.eyebrow ? `<p class="eyebrow">${escapeHtml(block.eyebrow)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}<div class="feature-card-grid">${(block.cards || []).map((card, index) => `<article class="feature-card">${renderFeatureCardMarker(card, index)}<h3>${escapeHtml(card.title || "")}</h3>${renderBlocks(card.richText)}</article>`).join("")}</div></section>`;
       }
       if (block._type === "imageLinkCards") {
         return `<section class="section cms-block">${block.eyebrow ? `<p class="eyebrow">${escapeHtml(block.eyebrow)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}<div class="page-cards">${(block.cards || []).map(renderImageCard).join("")}</div></section>`;
@@ -221,7 +249,7 @@ function renderHome(data) {
   const services = data.services || [];
   const news = data.newsPosts || [];
   const faqs = data.faqs || [];
-  return `<main id="top">${renderHero(data)}${renderBuilder(doc.pageBuilder)}${services.length ? `<section class="section services">${services.map((service) => `<article>${service.image?.url ? `<img src="${escapeHtml(service.image.url)}" alt="${escapeHtml(service.image.alt || "")}" loading="lazy" decoding="async">` : ""}<h3>${escapeHtml(pageTitle(service))}</h3><p>${escapeHtml(service.summary || "")}</p></article>`).join("")}</section>` : ""}${news.length ? `<section class="section news"><div class="section-heading"><p class="eyebrow">Aktuelt</p><h2>Aktuelt</h2></div><div class="news-grid">${news.slice(0, 2).map(renderNewsCard).join("")}</div><a class="back-link" href="/aktuelt/">Se alle nyheter</a></section>` : ""}${faqs.length ? `<section class="section faq"><div class="section-heading"><p class="eyebrow">FAQ</p><h2>Ofte stilte spørsmål</h2></div>${faqs.map((faq, index) => `<details ${index === 0 ? "open" : ""}><summary>${escapeHtml(faq.title || "")}</summary>${renderBlocks(faq.richText)}</details>`).join("")}</section>` : ""}</main>`;
+  return `<main id="top">${renderHero(data)}${renderBuilder(doc.pageBuilder)}${services.length ? `<section class="section services">${services.map(renderServiceCard).join("")}</section>` : ""}${news.length ? `<section class="section news"><div class="section-heading"><p class="eyebrow">Aktuelt</p><h2>Aktuelt</h2></div><div class="news-grid">${news.slice(0, 2).map(renderNewsCard).join("")}</div><a class="back-link" href="/aktuelt/">Se alle nyheter</a></section>` : ""}${faqs.length ? `<section class="section faq"><div class="section-heading"><p class="eyebrow">FAQ</p><h2>Ofte stilte spørsmål</h2></div>${faqs.map((faq, index) => `<details ${index === 0 ? "open" : ""}><summary>${escapeHtml(faq.title || "")}</summary>${renderBlocks(faq.richText)}</details>`).join("")}</section>` : ""}</main>`;
 }
 
 function renderNewsCard(post) {
@@ -292,7 +320,7 @@ function pageHtml(data, path) {
 }
 
 function contentQuery() {
-  const sharedFields = `_type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, "slug": slug.current,
+  const sharedFields = `_type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, icon, "slug": slug.current,
     image{alt, caption, "url": asset->url},
     mainImage{alt, caption, "url": asset->url},
     body[]{..., asset->{url}},

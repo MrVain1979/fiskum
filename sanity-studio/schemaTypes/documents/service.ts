@@ -1,5 +1,8 @@
 import { CogIcon } from "@sanity/icons";
 import { defineField, defineType } from "sanity";
+import { preview } from "sanity-plugin-icon-picker";
+
+import { iconField } from "../common";
 
 export const service = defineType({
   name: "service",
@@ -31,6 +34,7 @@ export const service = defineType({
       type: "text",
       rows: 3,
     }),
+    iconField,
     defineField({
       name: "body",
       title: "Innhold",
@@ -63,7 +67,13 @@ export const service = defineType({
     select: {
       title: "internalTitle",
       subtitle: "slug.current",
+      icon: "icon",
       media: "gallery.0",
     },
+    prepare: ({ title, subtitle, icon, media }) => ({
+      title,
+      subtitle,
+      media: icon ? preview(icon) : media,
+    }),
   },
 });
