@@ -337,6 +337,6 @@ export const getPresentationUrl = () => {
     return "http://localhost:3000";
   }
 
-  const presentationUrl = process.env.SANITY_STUDIO_PRESENTATION_URL;
+  const presentationUrl = (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.SANITY_STUDIO_PRESENTATION_URL;
   return presentationUrl ?? "https://fiskum-studio.vercel.app";
 };

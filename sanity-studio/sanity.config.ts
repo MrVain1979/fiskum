@@ -10,13 +10,16 @@ import { iconPicker } from "sanity-plugin-icon-picker";
 import { media, mediaAssetSource } from "sanity-plugin-media";
 
 import { LivePreviewLayout } from "./components/live-preview-layout";
+import { importContentTool } from "./import/importContentTool";
 import { Logo } from "./components/logo";
 import { schemaTypes } from "./schemaTypes";
 import { structure } from "./structure";
 import { createPageTemplate } from "./utils/helper";
 
 function requiredEnv(name: string) {
-  const value = process.env[name];
+  const importMetaEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+  const processEnv = typeof process !== "undefined" ? process.env : {};
+  const value = processEnv[name] || importMetaEnv?.[name];
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
@@ -68,4 +71,5 @@ export default defineConfig({
     types: schemaTypes,
     templates: createPageTemplate(),
   },
+  tools: (prev) => [...prev, importContentTool],
 });

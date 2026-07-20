@@ -12,8 +12,9 @@ const previewTypes = new Set([
   "newsPost",
 ]);
 
-const sanityProjectId = process.env.SANITY_STUDIO_PROJECT_ID;
-const sanityDataset = process.env.SANITY_STUDIO_DATASET;
+const studioEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {};
+const sanityProjectId = studioEnv.SANITY_STUDIO_PROJECT_ID;
+const sanityDataset = studioEnv.SANITY_STUDIO_DATASET;
 
 type PortableTextBlock = {
   _type?: string;

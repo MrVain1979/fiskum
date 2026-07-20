@@ -35,7 +35,7 @@ import {
   cleanSlug,
 } from "../utils/slug-validation";
 
-const presentationOriginUrl = process.env.SANITY_STUDIO_PRESENTATION_URL;
+const presentationOriginUrl = (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.SANITY_STUDIO_PRESENTATION_URL;
 
 const CopyButton = styled(Button)`
   cursor: pointer;

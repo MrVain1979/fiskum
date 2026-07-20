@@ -46,6 +46,13 @@ export const homePage = defineType({
       ],
     }),
     defineField({
+      name: "heroLead",
+      title: "Hero-undertekst",
+      type: "text",
+      rows: 3,
+      group: GROUP.MAIN_CONTENT,
+    }),
+    defineField({
       name: "slug",
       type: "slug",
       description:
@@ -62,6 +69,14 @@ export const homePage = defineType({
             requiredPrefix: "/",
           }),
         ),
+    }),
+    defineField({
+      name: "heroImages",
+      title: "Hero-bilder",
+      description: "Bildene som vises i bildefremvisningen på forsiden.",
+      type: "array",
+      of: [{ type: "imageWithAlt" }],
+      group: GROUP.MAIN_CONTENT,
     }),
     pageBuilderField,
     ...seoFields.filter(

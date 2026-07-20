@@ -145,6 +145,26 @@ function renderGallery(gallery = []) {
   return `<div class="gallery">${images.map((image) => `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt || image.caption || "")}" loading="lazy" decoding="async">`).join("")}</div>`;
 }
 
+function renderHero(data) {
+  const doc = data.document;
+  const images = (doc.heroImages || doc.gallery || []).filter((image) => image?.url);
+  const services = data.services || [];
+  const slides = images.length
+    ? `<div class="hero-media" aria-label="Prosjektbilder fra Fiskum Plate og Sveiseverksted">${images
+        .map((image, index) => `<figure class="hero-slide ${index === 0 ? "is-active" : ""}"><img ${index === 0 ? `src="${escapeHtml(image.url)}" fetchpriority="high"` : `data-src="${escapeHtml(image.url)}" loading="lazy"`} alt="${escapeHtml(image.alt || image.caption || "")}" decoding="async"></figure>`)
+        .join("")}</div>`
+    : "";
+  const dots = images.length > 1
+    ? `<div class="hero-dots" aria-label="Velg hero-bilde">${images.map((_, index) => `<button class="${index === 0 ? "is-active" : ""}" type="button" aria-label="Vis bilde ${index + 1}"></button>`).join("")}</div>`
+    : "";
+  const strip = services.length
+    ? `<div class="hero-strip">${services
+        .map((service) => `<a href="${escapeHtml(normalizePath(service.slug))}"><strong>${escapeHtml(pageTitle(service))}</strong><small>${escapeHtml(service.summary || "")}</small></a>`)
+        .join("")}</div>`
+    : "";
+  return `<section class="hero">${slides}<div class="hero-copy"><p class="eyebrow">${escapeHtml(doc.description || "")}</p><h1>${escapeHtml(doc.title || "")}</h1>${doc.heroLead ? `<p>${escapeHtml(doc.heroLead)}</p>` : ""}<div class="hero-actions"><a class="button primary" href="/kontakt-oss/">Send forespørsel</a>${data.settings?.phone ? `<a class="button ghost" href="tel:${escapeHtml(data.settings.phone.replaceAll(" ", ""))}">${escapeHtml(data.settings.phone)}</a>` : ""}</div></div>${dots}${strip}</section>`;
+}
+
 function renderPdfs(pdfFiles = []) {
   const files = (pdfFiles || []).filter((file) => file?.url);
   if (!files.length) return "";
@@ -200,7 +220,7 @@ function renderHome(data) {
   const services = data.services || [];
   const news = data.newsPosts || [];
   const faqs = data.faqs || [];
-  return `<main id="top"><section class="hero"><div class="hero-copy"><p class="eyebrow">${escapeHtml(doc.description || "")}</p><h1>${escapeHtml(doc.title || "")}</h1></div></section>${renderBuilder(doc.pageBuilder)}${services.length ? `<section class="section services">${services.map((service) => `<article>${service.image?.url ? `<img src="${escapeHtml(service.image.url)}" alt="${escapeHtml(service.image.alt || "")}" loading="lazy" decoding="async">` : ""}<h3>${escapeHtml(pageTitle(service))}</h3><p>${escapeHtml(service.summary || "")}</p></article>`).join("")}</section>` : ""}${news.length ? `<section class="section news"><div class="section-heading"><p class="eyebrow">Aktuelt</p><h2>Aktuelt</h2></div><div class="news-grid">${news.slice(0, 2).map(renderNewsCard).join("")}</div><a class="back-link" href="/aktuelt/">Se alle nyheter</a></section>` : ""}${faqs.length ? `<section class="section faq"><div class="section-heading"><p class="eyebrow">FAQ</p><h2>Ofte stilte spørsmål</h2></div>${faqs.map((faq, index) => `<details ${index === 0 ? "open" : ""}><summary>${escapeHtml(faq.title || "")}</summary>${renderBlocks(faq.richText)}</details>`).join("")}</section>` : ""}</main>`;
+  return `<main id="top">${renderHero(data)}${renderBuilder(doc.pageBuilder)}${services.length ? `<section class="section services">${services.map((service) => `<article>${service.image?.url ? `<img src="${escapeHtml(service.image.url)}" alt="${escapeHtml(service.image.alt || "")}" loading="lazy" decoding="async">` : ""}<h3>${escapeHtml(pageTitle(service))}</h3><p>${escapeHtml(service.summary || "")}</p></article>`).join("")}</section>` : ""}${news.length ? `<section class="section news"><div class="section-heading"><p class="eyebrow">Aktuelt</p><h2>Aktuelt</h2></div><div class="news-grid">${news.slice(0, 2).map(renderNewsCard).join("")}</div><a class="back-link" href="/aktuelt/">Se alle nyheter</a></section>` : ""}${faqs.length ? `<section class="section faq"><div class="section-heading"><p class="eyebrow">FAQ</p><h2>Ofte stilte spørsmål</h2></div>${faqs.map((faq, index) => `<details ${index === 0 ? "open" : ""}><summary>${escapeHtml(faq.title || "")}</summary>${renderBlocks(faq.richText)}</details>`).join("")}</section>` : ""}</main>`;
 }
 
 function renderNewsCard(post) {
@@ -209,7 +229,10 @@ function renderNewsCard(post) {
 
 function renderSidePanel(data, path) {
   const settings = data.settings;
-  if (path.startsWith("/tjenester")) {
+  if (path === "/tjenester/") {
+    return `<aside class="side-panel"><strong>Kontakt</strong>${settings?.phone ? `<a href="tel:${escapeHtml(settings.phone.replaceAll(" ", ""))}">${escapeHtml(settings.phone)}</a>` : ""}${settings?.contactEmail ? `<a href="mailto:${escapeHtml(settings.contactEmail)}">${escapeHtml(settings.contactEmail)}</a>` : ""}</aside>`;
+  }
+  if (["/stalbygg/", "/vegger/", "/broer/", "/trapper/"].includes(path)) {
     return `<aside class="side-panel"><strong>Tjenester</strong>${(data.services || []).map((service) => `<a href="${escapeHtml(normalizePath(service.slug))}">${escapeHtml(pageTitle(service))}</a>`).join("")}</aside>`;
   }
   return `<aside class="side-panel"><strong>Kontakt</strong>${settings?.phone ? `<a href="tel:${escapeHtml(settings.phone.replaceAll(" ", ""))}">${escapeHtml(settings.phone)}</a>` : ""}${settings?.contactEmail ? `<a href="mailto:${escapeHtml(settings.contactEmail)}">${escapeHtml(settings.contactEmail)}</a>` : ""}</aside>`;
@@ -232,8 +255,14 @@ function renderPage(data, path) {
   const doc = data.document;
   const title = pageTitle(doc);
   const lead = pageLead(doc);
-  const body = [renderBlocks(doc.body), renderBlocks(doc.richText), renderBuilder(doc.pageBuilder), renderGallery(doc.gallery), renderPdfs(doc.pdfFiles)].join("");
+  const body = [renderBlocks(doc.body), renderBlocks(doc.richText), renderBuilder(doc.pageBuilder), renderGallery(doc.gallery), renderPdfs(doc.pdfFiles), path === "/kontakt-oss/" ? renderContactForm(data.settings) : ""].join("");
   return `<main><section class="page-hero">${breadcrumbHtml(doc, path)}<p class="eyebrow">${escapeHtml(data.settings?.companyName || "")}</p><h1>${escapeHtml(title)}</h1>${lead ? `<p>${escapeHtml(lead)}</p>` : ""}</section><section class="page-content"><div class="page-grid"><div class="content-stack">${body}</div>${renderSidePanel(data, path)}</div>${renderContextList(data, path)}</section></main>`;
+}
+
+function renderContactForm(settings) {
+  const email = settings?.contactEmail || "";
+  const action = email ? `https://formsubmit.co/${email}` : "";
+  return `<section class="contact"><div class="contact-copy"><p class="eyebrow">Kontakt oss</p><h2>Send oss en forespørsel</h2><p>Har du spørsmål, er du alltid velkommen til å ta kontakt med oss.</p></div><form class="contact-form" action="${escapeHtml(action)}" method="POST" aria-label="Kontaktskjema"><input type="hidden" name="_subject" value="Ny forespørsel fra fiskum-sveis.no"><input type="hidden" name="_template" value="table"><input type="hidden" name="_captcha" value="false"><input type="hidden" name="_next" value="/kontakt-oss/"><input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" class="honeypot"><label>Navn<input type="text" name="name" autocomplete="name" placeholder="Ditt navn" required></label><label>E-post<input type="email" name="email" autocomplete="email" placeholder="din@epost.no" required></label><label>Telefon<input type="tel" name="phone" autocomplete="tel" placeholder="Telefonnummer"></label><label>Hva gjelder det?<select name="topic" required><option>Stålbygg</option><option>Vegger, fasade og tak</option><option>Broer</option><option>Trapper og rekkverk</option><option>Kranutleie</option><option>Annet</option></select></label><label>Beskjed<textarea name="message" rows="5" placeholder="Skriv kort hva du trenger hjelp med" required></textarea></label><button class="button primary" type="submit">Send forespørsel</button></form></section>`;
 }
 
 function pageHtml(data, path) {
@@ -262,12 +291,13 @@ function pageHtml(data, path) {
 }
 
 function contentQuery() {
-  const sharedFields = `_type, internalTitle, title, description, summary, excerpt, publishedAt, "slug": slug.current,
+  const sharedFields = `_type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, "slug": slug.current,
     image{alt, caption, "url": asset->url},
     mainImage{alt, caption, "url": asset->url},
     body[]{..., asset->{url}},
     richText[]{..., asset->{url}},
     gallery[]{alt, caption, "url": asset->url},
+    heroImages[]{alt, caption, "url": asset->url},
     pageBuilder[]{
       ...,
       image{alt, caption, "url": asset->url},
@@ -319,9 +349,39 @@ function validateContent(data, documents) {
   if ((data?.newsPosts || []).length < 1) issues.push("Mangler nyheter/Aktuelt i Sanity.");
   if (missingRoutes.length) issues.push(`Mangler publiserte ruter i Sanity: ${missingRoutes.join(", ")}`);
 
-  if (issues.length) {
-    throw new Error(`Sanity-innholdet er ikke komplett nok til statisk produksjonsbuild.\n- ${issues.join("\n- ")}`);
-  }
+  return issues;
+}
+
+function cmsErrorHtml(issues) {
+  const title = "Sanity mangler innhold";
+  return `<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>${title}</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="cms-error">
+      <section class="page-hero">
+        <p class="eyebrow">Sanity CMS</p>
+        <h1>${title}</h1>
+        <p>Nettsiden viser ikke fallback- eller demoinnhold. Fyll Sanity med publisert innhold og bygg/deploy siden på nytt.</p>
+      </section>
+      <section class="page-content">
+        <div class="content-stack">
+          <h2>Dette mangler før produksjonsbuild</h2>
+          <ul>${issues.map((issue) => `<li>${escapeHtml(issue)}</li>`).join("")}</ul>
+          <p><a class="button primary" href="/studio/import-fiskum-content">Åpne importverktøy i Sanity Studio</a></p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
+`;
 }
 
 function fileForRoute(route, mirror) {
@@ -360,8 +420,16 @@ async function build() {
     ...(data.newsPosts || []),
   ].filter(Boolean);
 
-  validateContent(data, documents);
+  const issues = validateContent(data, documents);
   await cleanGeneratedRoutes();
+
+  if (issues.length) {
+    const html = cmsErrorHtml(issues);
+    await writeRoute("/", html);
+    await writeRoute("/studio-import/", html);
+    console.warn(`Sanity-innholdet er ikke komplett. Skrev tydelig CMS-feilside uten fallback:\n- ${issues.join("\n- ")}`);
+    return;
+  }
 
   const routes = new Set();
 
