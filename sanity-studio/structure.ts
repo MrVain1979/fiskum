@@ -30,12 +30,10 @@ type Base<T = SchemaType> = {
 
 type CreateSingleton = {
   S: StructureBuilder;
-} & Base<SingletonType>;
+} & Omit<Base<SingletonType>, "title">;
 
-const createSingleton = ({ S, type, title, icon }: CreateSingleton) => {
-  const newTitle = title ?? getTitleCase(type);
-  return S.listItem()
-    .title(newTitle)
+const createSingleton = ({ S, type, icon }: CreateSingleton) => {
+  return S.documentListItem({ id: type, schemaType: type })
     .icon(icon ?? File)
     .child(S.document().schemaType(type).documentId(type));
 };
@@ -59,7 +57,7 @@ export const structure = (
   return S.list()
     .title("Fiskum innhold")
     .items([
-      createSingleton({ S, type: "homePage", title: "Forside", icon: HomeIcon }),
+      createSingleton({ S, type: "homePage", icon: HomeIcon }),
       createList({ S, type: "page", title: "Sider", icon: BookOpen }),
       createList({ S, type: "service", title: "Tjenester", icon: Wrench }),
       createList({ S, type: "projectReference", title: "Referanser", icon: ImageIcon }),
@@ -75,19 +73,16 @@ export const structure = (
               createSingleton({
                 S,
                 type: "settings",
-                title: "Sideinnstillinger",
                 icon: CogIcon,
               }),
               createSingleton({
                 S,
                 type: "navbar",
-                title: "Header og hovedmeny",
                 icon: PanelTopDashedIcon,
               }),
               createSingleton({
                 S,
                 type: "footer",
-                title: "Footer",
                 icon: PanelBottomIcon,
               }),
             ]),
