@@ -464,6 +464,22 @@ async function prepareDist() {
   }
 }
 
+async function prepareStudioStaticRoutes() {
+  const studioRoutes = ["structure", "import-fiskum-content"];
+
+  for (const mirror of mirrors) {
+    const base = mirror ? join(root, mirror) : root;
+    const studioIndex = join(base, "studio", "index.html");
+    if (!(await exists(studioIndex))) continue;
+
+    for (const route of studioRoutes) {
+      const targetDir = join(base, "studio", route);
+      await mkdir(targetDir, { recursive: true });
+      await cp(studioIndex, join(targetDir, "index.html"), { force: true });
+    }
+  }
+}
+
 async function build() {
   const response = await fetch(queryUrl(contentQuery()));
   if (!response.ok) throw new Error(`Sanity svarte ${response.status} under build.`);
@@ -480,6 +496,7 @@ async function build() {
   const issues = validateContent(data, documents);
   await cleanGeneratedRoutes();
   await prepareDist();
+  await prepareStudioStaticRoutes();
 
   if (issues.length) {
     const html = cmsErrorHtml(issues);
