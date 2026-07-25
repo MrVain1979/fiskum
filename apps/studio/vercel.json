@@ -1,5 +1,22 @@
 {
   "buildCommand": "node scripts/build-static.mjs",
   "outputDirectory": "dist",
-  "trailingSlash": true
+  "trailingSlash": true,
+  "rewrites": [
+    {
+      "source": "/studio/:path*",
+      "destination": "/studio/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/studio/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ]
 }
