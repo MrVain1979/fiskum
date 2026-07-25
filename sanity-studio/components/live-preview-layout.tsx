@@ -5,6 +5,7 @@ import { useEditState, type SanityDocument } from "sanity";
 import type { DocumentLayoutProps } from "sanity";
 
 const previewTypes = new Set([
+  "settings",
   "homePage",
   "page",
   "service",
@@ -24,9 +25,29 @@ type PortableTextBlock = {
   asset?: {
     _ref?: string;
     url?: string;
+    metadata?: {
+      dimensions?: {
+        width?: number;
+        height?: number;
+      };
+    };
+  };
+  crop?: {
+    top?: number;
+    bottom?: number;
+    left?: number;
+    right?: number;
+  };
+  hotspot?: {
+    x?: number;
+    y?: number;
   };
   alt?: string;
   caption?: string;
+};
+
+type ImageValue = PortableTextBlock & {
+  url?: string;
 };
 
 type PdfFile = {
@@ -69,6 +90,7 @@ function normalizeRoute(route: string) {
 function getRoute(document: Partial<SanityDocument> | null, documentType: string) {
   const slug = getSlug(document);
 
+  if (documentType === "settings") return "/";
   if (documentType === "homePage") return "/";
   if (documentType === "projectReference") {
     return normalizeRoute(`/referanser${slug}`);
@@ -124,6 +146,50 @@ function imageUrlFromRef(ref?: string) {
   return `https://cdn.sanity.io/images/${sanityProjectId}/${sanityDataset}/${id}.${extension}`;
 }
 
+function getImageRef(image: ImageValue | null | undefined) {
+  return image?.asset?._ref;
+}
+
+function getImageSource(image: ImageValue | null | undefined) {
+  return image?.url || image?.asset?.url || imageUrlFromRef(getImageRef(image));
+}
+
+function getImageDimensions(image: ImageValue | null | undefined) {
+  return image?.asset?.metadata?.dimensions || {};
+}
+
+function imageUrl(image: ImageValue | null | undefined) {
+  const src = getImageSource(image);
+  if (!src) return "";
+  const crop = image?.crop;
+  const { width, height } = getImageDimensions(image);
+  if (!crop || !width || !height) return src;
+
+  const left = Math.max(0, Math.round(width * (crop.left || 0)));
+  const top = Math.max(0, Math.round(height * (crop.top || 0)));
+  const rectWidth = Math.max(1, Math.round(width * (1 - (crop.left || 0) - (crop.right || 0))));
+  const rectHeight = Math.max(1, Math.round(height * (1 - (crop.top || 0) - (crop.bottom || 0))));
+  const separator = src.includes("?") ? "&" : "?";
+  return `${src}${separator}rect=${left},${top},${rectWidth},${rectHeight}`;
+}
+
+function imageStyle(image: ImageValue | null | undefined) {
+  const hotspot = image?.hotspot;
+  if (!hotspot || typeof hotspot.x !== "number" || typeof hotspot.y !== "number") return "";
+  return ` style="object-position:${Math.round(hotspot.x * 100)}% ${Math.round(hotspot.y * 100)}%"`;
+}
+
+function renderImage(image: ImageValue | null | undefined, alt = "", attrs = "") {
+  const src = imageUrl(image);
+  if (!src) return "";
+  return `<img src="${escapeHtml(src)}" alt="${escapeHtml(image?.alt || image?.caption || alt)}"${attrs}${imageStyle(image)}>`;
+}
+
+function getImageArray(document: Partial<SanityDocument> | null, path: string) {
+  const value = getValue(document, path);
+  return Array.isArray(value) ? (value as ImageValue[]) : [];
+}
+
 function getPdfFiles(document: Partial<SanityDocument> | null) {
   const pdfFiles = getValue(document, "pdfFiles");
   if (!Array.isArray(pdfFiles)) return [];
@@ -150,11 +216,11 @@ function renderPortableText(value: unknown) {
   return value
     .map((block: PortableTextBlock) => {
       if (block?._type === "image" || block?._type === "imageWithAlt") {
-        const src = block.asset?.url || imageUrlFromRef(block.asset?._ref);
+        const src = imageUrl(block);
         if (!src) return "";
         const alt = block.alt || block.caption || "";
         const caption = block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : "";
-        return `<figure><img src="${src}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async">${caption}</figure>`;
+        return `<figure>${renderImage(block, alt, ' loading="lazy" decoding="async"')}${caption}</figure>`;
       }
 
       if (block?._type !== "block") return "";
@@ -176,21 +242,107 @@ function renderPortableText(value: unknown) {
     .join("");
 }
 
+function resolveLink(url: unknown) {
+  if (!url || typeof url !== "object") return "";
+  const value = url as {
+    type?: string;
+    external?: string;
+    href?: string;
+    internal?: { slug?: { current?: string } } | { slug?: string };
+  };
+
+  if (value.type === "internal") {
+    const slug =
+      typeof value.internal?.slug === "string"
+        ? value.internal.slug
+        : value.internal?.slug?.current;
+    if (!slug) return "";
+    const path = slug.startsWith("/") ? slug : `/${slug}`;
+    return path.endsWith("/") ? path : `${path}/`;
+  }
+
+  return value.external || value.href || "";
+}
+
+function renderButtons(buttons: unknown) {
+  if (!Array.isArray(buttons)) return "";
+  const html = buttons
+    .filter((button) => button?.text && resolveLink(button.url))
+    .map(
+      (button) =>
+        `<a class="button ${button.variant === "outline" ? "ghost" : "primary"}" href="${escapeHtml(resolveLink(button.url))}">${escapeHtml(button.text)}</a>`,
+    )
+    .join("");
+  return html ? `<div class="cms-buttons">${html}</div>` : "";
+}
+
+function renderImageCard(card: Record<string, unknown>) {
+  const href = resolveLink(card.url);
+  if (!href) return "";
+  const title = typeof card.title === "string" ? card.title : "";
+  const description = typeof card.description === "string" ? card.description : "";
+  return `<a class="page-card" href="${escapeHtml(href)}">${renderImage(card.image as ImageValue, title, ' loading="lazy" decoding="async"')}<h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></a>`;
+}
+
+function renderBuilder(blocks: unknown) {
+  if (!Array.isArray(blocks)) return "";
+
+  return blocks
+    .map((block) => {
+      if (!block?._type) return "";
+      if (block._type === "hero" || block._type === "cta") {
+        const eyebrow = block.eyebrow || block.badge || "";
+        return `<section class="section cms-block">${eyebrow ? `<p class="eyebrow">${escapeHtml(eyebrow)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderPortableText(block.richText)}${renderButtons(block.buttons)}</section>`;
+      }
+      if (block._type === "featureCardsIcon") {
+        return `<section class="section cms-block">${block.eyebrow ? `<p class="eyebrow">${escapeHtml(block.eyebrow)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderPortableText(block.richText)}<div class="feature-card-grid">${(block.cards || []).map((card: Record<string, unknown>, index: number) => `<article class="feature-card"><span class="feature-card-index" aria-hidden="true">${String(index + 1).padStart(2, "0")}</span><h3>${escapeHtml(String(card.title || ""))}</h3>${renderPortableText(card.richText)}</article>`).join("")}</div></section>`;
+      }
+      if (block._type === "imageLinkCards") {
+        return `<section class="section cms-block">${block.eyebrow ? `<p class="eyebrow">${escapeHtml(block.eyebrow)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderPortableText(block.richText)}<div class="page-cards">${(block.cards || []).map(renderImageCard).join("")}</div></section>`;
+      }
+      if (block._type === "faqAccordion") {
+        return `<section class="section faq cms-block">${block.eyebrow ? `<p class="eyebrow">${escapeHtml(block.eyebrow)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${(block.faqs || []).map((faq: Record<string, unknown>, index: number) => `<details ${index === 0 ? "open" : ""}><summary>${escapeHtml(String(faq.title || ""))}</summary>${renderPortableText(faq.richText)}</details>`).join("")}</section>`;
+      }
+      return "";
+    })
+    .join("");
+}
+
 function renderDraftGallery(document: Partial<SanityDocument> | null) {
-  const gallery = getValue(document, "gallery");
-  if (!Array.isArray(gallery)) return "";
+  const gallery = getImageArray(document, "gallery");
 
   const images = gallery
-    .map((image: PortableTextBlock) => ({
+    .map((image) => ({
       alt: image.alt || image.caption || "",
-      url: image.asset?.url || imageUrlFromRef(image.asset?._ref),
+      image,
+      url: imageUrl(image),
     }))
     .filter((image) => image.url);
 
   if (!images.length) return "";
 
   return `<div class="gallery">${images
-    .map((image) => `<img src="${image.url}" alt="${escapeHtml(image.alt)}" loading="lazy" decoding="async">`)
+    .map(({ image, alt }) => renderImage(image, alt, ' loading="lazy" decoding="async"'))
+    .join("")}</div>`;
+}
+
+function renderHeroMedia(document: Partial<SanityDocument> | null) {
+  const images = getImageArray(document, "heroImages").filter((image) => imageUrl(image));
+  if (!images.length) return "";
+  return `<div class="hero-media" aria-label="Prosjektbilder fra Fiskum Plate og Sveiseverksted">${images
+    .map((image, index) => {
+      const src = imageUrl(image);
+      const srcAttrs = index === 0 ? ` src="${escapeHtml(src)}" fetchpriority="high"` : ` data-src="${escapeHtml(src)}" loading="lazy"`;
+      return `<figure class="hero-slide ${index === 0 ? "is-active" : ""}"><img${srcAttrs} alt="${escapeHtml(image.alt || image.caption || "")}" decoding="async"${imageStyle(image)}></figure>`;
+    })
+    .join("")}</div>`;
+}
+
+function renderHeroDots(document: Partial<SanityDocument> | null) {
+  const images = getImageArray(document, "heroImages").filter((image) => imageUrl(image));
+  if (images.length < 2) return "";
+  return `<div class="hero-dots" aria-label="Velg hero-bilde">${images
+    .map((_, index) => `<button class="${index === 0 ? "is-active" : ""}" type="button" aria-label="Vis bilde ${index + 1}"></button>`)
     .join("")}</div>`;
 }
 
@@ -226,6 +378,32 @@ function applyDraftToPageHtml(
   const descriptionMeta = doc.querySelector('meta[name="description"]');
   if (descriptionMeta && intro) descriptionMeta.setAttribute("content", intro);
 
+  const seoImage = imageUrl(
+    (getValue(document, "seoImage") ||
+      getValue(document, "mainImage") ||
+      getValue(document, "image") ||
+      getImageArray(document, "heroImages")[0] ||
+      getImageArray(document, "gallery")[0]) as ImageValue,
+  );
+
+  if (seoImage) {
+    let ogImage = doc.querySelector('meta[property="og:image"]');
+    if (!ogImage) {
+      ogImage = doc.createElement("meta");
+      ogImage.setAttribute("property", "og:image");
+      doc.head.append(ogImage);
+    }
+    ogImage.setAttribute("content", seoImage);
+
+    let twitterImage = doc.querySelector('meta[name="twitter:image"]');
+    if (!twitterImage) {
+      twitterImage = doc.createElement("meta");
+      twitterImage.setAttribute("name", "twitter:image");
+      doc.head.append(twitterImage);
+    }
+    twitterImage.setAttribute("content", seoImage);
+  }
+
   const lead =
     doc.querySelector(".page-hero p") ||
     doc.querySelector(".article-hero p") ||
@@ -237,6 +415,7 @@ function applyDraftToPageHtml(
   const draftBody = [
     renderPortableText(getValue(document, "body")),
     renderPortableText(getValue(document, "richText")),
+    renderBuilder(getValue(document, "pageBuilder")),
     renderDraftGallery(document),
   ].join("");
 
@@ -268,6 +447,34 @@ function applyDraftToPageHtml(
     const homeTitle = getString(document, ["title"]);
     const heroTitle = doc.querySelector(".hero h1, h1");
     if (heroTitle && homeTitle) heroTitle.textContent = homeTitle;
+
+    const heroMedia = renderHeroMedia(document);
+    const existingHeroMedia = doc.querySelector(".hero-media");
+    if (heroMedia && existingHeroMedia) {
+      existingHeroMedia.outerHTML = heroMedia;
+    }
+
+    const heroDots = renderHeroDots(document);
+    const existingHeroDots = doc.querySelector(".hero-dots");
+    if (existingHeroDots) {
+      if (heroDots) existingHeroDots.outerHTML = heroDots;
+      else existingHeroDots.remove();
+    }
+  }
+
+  if (documentType === "settings") {
+    const logo = getValue(document, "logo") as ImageValue;
+    const logoSrc = imageUrl(logo);
+    if (logoSrc) {
+      doc.querySelectorAll(".brand img, .footer-brand img").forEach((image) => {
+        image.setAttribute("src", logoSrc);
+        if (logo.alt || getString(document, ["companyName"])) {
+          image.setAttribute("alt", logo.alt || getString(document, ["companyName"]));
+        }
+        const style = imageStyle(logo).match(/style="([^"]+)"/)?.[1];
+        if (style) image.setAttribute("style", style);
+      });
+    }
   }
 
   if (pdfFiles.length) {

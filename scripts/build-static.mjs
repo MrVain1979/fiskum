@@ -55,6 +55,41 @@ function resolveLink(url) {
   return url.external || url.href || "";
 }
 
+function imageSource(image) {
+  return image?.url || image?.asset?.url || "";
+}
+
+function imageDimensions(image) {
+  return image?.asset?.metadata?.dimensions || image?.metadata?.dimensions || {};
+}
+
+function imageUrl(image) {
+  const url = imageSource(image);
+  if (!url) return "";
+  const crop = image?.crop;
+  const { width, height } = imageDimensions(image);
+  if (!crop || !width || !height) return url;
+
+  const left = Math.max(0, Math.round(width * (crop.left || 0)));
+  const top = Math.max(0, Math.round(height * (crop.top || 0)));
+  const rectWidth = Math.max(1, Math.round(width * (1 - (crop.left || 0) - (crop.right || 0))));
+  const rectHeight = Math.max(1, Math.round(height * (1 - (crop.top || 0) - (crop.bottom || 0))));
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}rect=${left},${top},${rectWidth},${rectHeight}`;
+}
+
+function imageStyleAttr(image) {
+  const hotspot = image?.hotspot;
+  if (!hotspot || typeof hotspot.x !== "number" || typeof hotspot.y !== "number") return "";
+  return ` style="object-position:${Math.round(hotspot.x * 100)}% ${Math.round(hotspot.y * 100)}%"`;
+}
+
+function renderImage(image, alt = "", attrs = "") {
+  const url = imageUrl(image);
+  if (!url) return "";
+  return `<img src="${escapeHtml(url)}" alt="${escapeHtml(image?.alt || image?.caption || alt)}"${attrs}${imageStyleAttr(image)}>`;
+}
+
 function flattenNav(navbar) {
   const items = [];
   (navbar?.columns || []).forEach((item) => {
@@ -78,10 +113,10 @@ function renderBlocks(blocks = []) {
   return blocks
     .map((block) => {
       if (block?._type === "image" || block?._type === "imageWithAlt") {
-        if (!block.url && !block.asset?.url) return "";
-        const url = block.url || block.asset.url;
+        const url = imageUrl(block);
+        if (!url) return "";
         const caption = block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : "";
-        return `<figure><img src="${escapeHtml(url)}" alt="${escapeHtml(block.alt || block.caption || "")}" loading="lazy" decoding="async">${caption}</figure>`;
+        return `<figure>${renderImage(block, "", ' loading="lazy" decoding="async"')}${caption}</figure>`;
       }
       if (block?._type !== "block") return "";
 
@@ -114,7 +149,7 @@ function renderButtons(buttons = []) {
 function renderImageCard(card) {
   const href = resolveLink(card.url);
   if (!href) return "";
-  const image = card.image?.url ? `<img src="${escapeHtml(card.image.url)}" alt="${escapeHtml(card.image.alt || card.title || "")}" loading="lazy" decoding="async">` : "";
+  const image = imageUrl(card.image) ? renderImage(card.image, card.title || "", ' loading="lazy" decoding="async"') : "";
   return `<a class="page-card" href="${escapeHtml(href)}">${image}<h3>${escapeHtml(card.title || "")}</h3><p>${escapeHtml(card.description || "")}</p></a>`;
 }
 
@@ -169,18 +204,22 @@ function renderBuilder(blocks = []) {
 }
 
 function renderGallery(gallery = []) {
-  const images = (gallery || []).filter((image) => image?.url);
+  const images = (gallery || []).filter((image) => imageUrl(image));
   if (!images.length) return "";
-  return `<section class="gallery-section"><h2>Galleri</h2><div class="gallery">${images.map((image) => `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt || image.caption || "")}" loading="lazy" decoding="async">`).join("")}</div></section>`;
+  return `<section class="gallery-section"><h2>Galleri</h2><div class="gallery">${images.map((image) => renderImage(image, "", ' loading="lazy" decoding="async"')).join("")}</div></section>`;
 }
 
 function renderHero(data) {
   const doc = data.document;
-  const images = (doc.heroImages || doc.gallery || []).filter((image) => image?.url);
+  const images = (doc.heroImages || doc.gallery || []).filter((image) => imageUrl(image));
   const services = data.services || [];
   const slides = images.length
     ? `<div class="hero-media" aria-label="Prosjektbilder fra Fiskum Plate og Sveiseverksted">${images
-        .map((image, index) => `<figure class="hero-slide ${index === 0 ? "is-active" : ""}"><img ${index === 0 ? `src="${escapeHtml(image.url)}" fetchpriority="high"` : `data-src="${escapeHtml(image.url)}" loading="lazy"`} alt="${escapeHtml(image.alt || image.caption || "")}" decoding="async"></figure>`)
+        .map((image, index) => {
+          const url = imageUrl(image);
+          const srcAttrs = index === 0 ? ` src="${escapeHtml(url)}" fetchpriority="high"` : ` data-src="${escapeHtml(url)}" loading="lazy"`;
+          return `<figure class="hero-slide ${index === 0 ? "is-active" : ""}"><img${srcAttrs} alt="${escapeHtml(image.alt || image.caption || "")}" decoding="async"${imageStyleAttr(image)}></figure>`;
+        })
         .join("")}</div>`
     : "";
   const dots = images.length > 1
@@ -235,13 +274,15 @@ function breadcrumbHtml(doc, path) {
 
 function renderHeader(settings, navbar) {
   const links = flattenNav(navbar);
-  return `<header class="site-header"><a class="brand" href="/" aria-label="Til forsiden">${settings?.logoUrl ? `<img src="${escapeHtml(settings.logoUrl)}" alt="${escapeHtml(settings.companyName || "")}">` : ""}<span>${escapeHtml(settings?.companyName || "")}</span></a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav"><span></span><span></span><span></span><span class="sr-only">Meny</span></button><nav id="primary-nav" class="nav" aria-label="Hovedmeny">${links.map((item) => `<a${/kontakt/i.test(item.name) ? ' class="nav-cta"' : ""} href="${escapeHtml(resolveLink(item.url))}">${escapeHtml(item.name)}</a>`).join("")}</nav></header>`;
+  const logo = renderImage(settings?.logo || { url: settings?.logoUrl }, settings?.companyName || "");
+  return `<header class="site-header"><a class="brand" href="/" aria-label="Til forsiden">${logo}<span>${escapeHtml(settings?.companyName || "")}</span></a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav"><span></span><span></span><span></span><span class="sr-only">Meny</span></button><nav id="primary-nav" class="nav" aria-label="Hovedmeny">${links.map((item) => `<a${/kontakt/i.test(item.name) ? ' class="nav-cta"' : ""} href="${escapeHtml(resolveLink(item.url))}">${escapeHtml(item.name)}</a>`).join("")}</nav></header>`;
 }
 
 function renderFooter(settings, footer, navbar) {
   const links = flattenNav(navbar);
   const phoneHref = (settings?.phone || "").replaceAll(" ", "");
-  return `<footer class="footer"><div class="footer-inner"><div class="footer-brand">${settings?.logoUrl ? `<img src="${escapeHtml(settings.logoUrl)}" alt="${escapeHtml(settings.companyName || "")}">` : ""}${footer?.subtitle ? `<h2>${escapeHtml(footer.subtitle)}</h2>` : ""}</div><div class="footer-columns"><div><strong>Telefon</strong>${settings?.phone ? `<a href="tel:${escapeHtml(phoneHref)}">${escapeHtml(settings.phone)}</a>` : ""}</div><div><strong>E-post</strong>${settings?.contactEmail ? `<a href="mailto:${escapeHtml(settings.contactEmail)}">${escapeHtml(settings.contactEmail)}</a>` : ""}</div><address><strong>Adresse</strong>${escapeHtml(settings?.address?.street || "")}<br>${escapeHtml([settings?.address?.postalCode, settings?.address?.city].filter(Boolean).join(" "))}<br>${escapeHtml(settings?.address?.country || "")}</address><div><strong>Følg oss</strong>${settings?.socialLinks?.facebook ? `<a class="social-link" href="${escapeHtml(settings.socialLinks.facebook)}" aria-label="Facebook">f</a>` : ""}</div></div><div class="footer-bottom"><nav aria-label="Bunnmeny">${links.map((item) => `<a href="${escapeHtml(resolveLink(item.url))}">${escapeHtml(item.name)}</a>`).join("")}</nav><p class="copyright">© ${new Date().getFullYear()} ${escapeHtml(settings?.companyName || "")}</p></div></div></footer>`;
+  const logo = renderImage(settings?.logo || { url: settings?.logoUrl }, settings?.companyName || "");
+  return `<footer class="footer"><div class="footer-inner"><div class="footer-brand">${logo}${footer?.subtitle ? `<h2>${escapeHtml(footer.subtitle)}</h2>` : ""}</div><div class="footer-columns"><div><strong>Telefon</strong>${settings?.phone ? `<a href="tel:${escapeHtml(phoneHref)}">${escapeHtml(settings.phone)}</a>` : ""}</div><div><strong>E-post</strong>${settings?.contactEmail ? `<a href="mailto:${escapeHtml(settings.contactEmail)}">${escapeHtml(settings.contactEmail)}</a>` : ""}</div><address><strong>Adresse</strong>${escapeHtml(settings?.address?.street || "")}<br>${escapeHtml([settings?.address?.postalCode, settings?.address?.city].filter(Boolean).join(" "))}<br>${escapeHtml(settings?.address?.country || "")}</address><div><strong>Følg oss</strong>${settings?.socialLinks?.facebook ? `<a class="social-link" href="${escapeHtml(settings.socialLinks.facebook)}" aria-label="Facebook">f</a>` : ""}</div></div><div class="footer-bottom"><nav aria-label="Bunnmeny">${links.map((item) => `<a href="${escapeHtml(resolveLink(item.url))}">${escapeHtml(item.name)}</a>`).join("")}</nav><p class="copyright">© ${new Date().getFullYear()} ${escapeHtml(settings?.companyName || "")}</p></div></div></footer>`;
 }
 
 function renderHome(data) {
@@ -253,7 +294,7 @@ function renderHome(data) {
 }
 
 function renderNewsCard(post) {
-  return `<a class="news-card" href="${escapeHtml(newsHref(post))}">${post.image?.url ? `<img src="${escapeHtml(post.image.url)}" alt="${escapeHtml(post.image.alt || pageTitle(post))}" loading="lazy" decoding="async">` : ""}<div><p>${escapeHtml(formatDate(post.publishedAt))}</p><h3>${escapeHtml(pageTitle(post))}</h3></div></a>`;
+  return `<a class="news-card" href="${escapeHtml(newsHref(post))}">${imageUrl(post.image) ? renderImage(post.image, pageTitle(post), ' loading="lazy" decoding="async"') : ""}<div><p>${escapeHtml(formatDate(post.publishedAt))}</p><h3>${escapeHtml(pageTitle(post))}</h3></div></a>`;
 }
 
 function renderSidePanel(data, path) {
@@ -272,7 +313,7 @@ function renderContextList(data, path) {
     return `<div class="page-cards">${(data.services || []).map((service) => `<a class="page-card" href="${escapeHtml(normalizePath(service.slug))}"><h3>${escapeHtml(pageTitle(service))}</h3><p>${escapeHtml(service.summary || "")}</p></a>`).join("")}</div>`;
   }
   if (path === "/referanser/") {
-    return `<div class="reference-list">${(data.references || []).map((reference) => `<a class="reference-card" href="/referanser/${escapeHtml(String(reference.slug || "").replace(/^\/+|\/+$/g, ""))}/">${reference.image?.url ? `<img src="${escapeHtml(reference.image.url)}" alt="${escapeHtml(reference.image.alt || pageTitle(reference))}" loading="lazy" decoding="async">` : ""}<span>Referanse</span><h3>${escapeHtml(pageTitle(reference))}</h3><p>${escapeHtml(reference.summary || "")}</p></a>`).join("")}</div>`;
+    return `<div class="reference-list">${(data.references || []).map((reference) => `<a class="reference-card" href="/referanser/${escapeHtml(String(reference.slug || "").replace(/^\/+|\/+$/g, ""))}/">${imageUrl(reference.image) ? renderImage(reference.image, pageTitle(reference), ' loading="lazy" decoding="async"') : ""}<span>Referanse</span><h3>${escapeHtml(pageTitle(reference))}</h3><p>${escapeHtml(reference.summary || "")}</p></a>`).join("")}</div>`;
   }
   if (path === "/aktuelt/" || path === "/category/aktuelt/") {
     return `<div class="news-list">${(data.newsPosts || []).map((post) => `<a class="news-list-item" href="${escapeHtml(newsHref(post))}"><span>${escapeHtml(formatDate(post.publishedAt))}</span><h2>${escapeHtml(pageTitle(post))}</h2><p>${escapeHtml(post.excerpt || "")}</p></a>`).join("")}</div>`;
@@ -301,6 +342,7 @@ function pageHtml(data, path) {
   const doc = data.document;
   const title = pageTitle(doc) || data.settings?.siteTitle || "";
   const description = pageLead(doc) || data.settings?.siteDescription || "";
+  const seoImage = imageUrl(doc?.seoImage || doc?.mainImage || doc?.image || doc?.heroImages?.[0] || doc?.gallery?.[0]);
   const body = `${renderHeader(data.settings, data.navbar)}${doc._type === "homePage" ? renderHome(data) : renderPage(data, path)}${renderFooter(data.settings, data.footer, data.navbar)}`;
   return `<!doctype html>
 <html lang="nb">
@@ -309,6 +351,10 @@ function pageHtml(data, path) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title ? `${title} - ${data.settings?.companyName || ""}` : "")}</title>
     <meta name="description" content="${escapeHtml(description)}" />
+    <meta property="og:title" content="${escapeHtml(doc?.ogTitle || doc?.seoTitle || title)}" />
+    <meta property="og:description" content="${escapeHtml(doc?.ogDescription || doc?.seoDescription || description)}" />
+    ${seoImage ? `<meta property="og:image" content="${escapeHtml(seoImage)}" />` : ""}
+    ${seoImage ? `<meta name="twitter:image" content="${escapeHtml(seoImage)}" />` : ""}
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="stylesheet" href="/styles.css" />
     <script src="/script.js" defer></script>
@@ -323,32 +369,35 @@ function pageHtml(data, path) {
 }
 
 function contentQuery() {
-  const sharedFields = `_type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, icon, "slug": slug.current,
-    image{alt, caption, "url": asset->url},
-    mainImage{alt, caption, "url": asset->url},
-    body[]{..., asset->{url}},
-    richText[]{..., asset->{url}},
-    gallery[]{alt, caption, "url": asset->url},
-    heroImages[]{alt, caption, "url": asset->url},
+  const imageProjection = `alt, caption, crop, hotspot, "url": asset->url, asset->{url, metadata{dimensions{width,height}}}`;
+  const portableProjection = `..., crop, hotspot, asset->{url, metadata{dimensions{width,height}}}`;
+  const sharedFields = `_type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, icon, seoTitle, seoDescription, seoNoIndex, ogTitle, ogDescription, "slug": slug.current,
+    image{${imageProjection}},
+    seoImage{${imageProjection}},
+    mainImage{${imageProjection}},
+    body[]{${portableProjection}},
+    richText[]{${portableProjection}},
+    gallery[]{${imageProjection}},
+    heroImages[]{${imageProjection}},
     pageBuilder[]{
       ...,
-      image{alt, caption, "url": asset->url},
-      richText[]{..., asset->{url}},
-      cards[]{..., image{alt, "url": asset->url}, richText[]{..., asset->{url}}},
-      faqs[]->{title, richText[]{..., asset->{url}}},
+      image{${imageProjection}},
+      richText[]{${portableProjection}},
+      cards[]{..., image{${imageProjection}}, richText[]{${portableProjection}}},
+      faqs[]->{title, richText[]{${portableProjection}}},
       buttons[]{text, variant, url{type, external, href, internal->{_type, "slug": slug.current}}}
     },
     "pdfFiles": pdfFiles[]{title, description, "url": file.asset->url}`;
   return `{
-    "settings": *[_type == "settings"][0]{companyName, siteTitle, siteDescription, phone, contactEmail, address, socialLinks, "logoUrl": logo.asset->url},
+    "settings": *[_type == "settings"][0]{companyName, siteTitle, siteDescription, phone, contactEmail, address, socialLinks, logo{${imageProjection}}, "logoUrl": logo.asset->url},
     "navbar": *[_type == "navbar"][0]{columns[]{_type, name, title, url{type, external, href, internal->{_type, "slug": slug.current}}, links[]{name, url{type, external, href, internal->{_type, "slug": slug.current}}}}},
     "footer": *[_type == "footer"][0]{subtitle, columns[]{title, links[]{name, url{type, external, href, internal->{_type, "slug": slug.current}}}}},
     "homePage": *[_type == "homePage"][0]{${sharedFields}},
     "pages": *[_type == "page"] | order(_createdAt asc){${sharedFields}},
-    "services": *[_type == "service"] | order(_createdAt asc){${sharedFields}, "image": gallery[0]{alt, "url": asset->url}},
-    "references": *[_type == "projectReference"] | order(_createdAt asc){${sharedFields}, category, "image": gallery[0]{alt, "url": asset->url}},
-    "newsPosts": *[_type == "newsPost"] | order(publishedAt desc){${sharedFields}, "image": mainImage{alt, "url": asset->url}},
-    "faqs": *[_type == "faq"] | order(_createdAt asc){title, richText[]{..., asset->{url}}}
+    "services": *[_type == "service"] | order(_createdAt asc){${sharedFields}, "image": gallery[0]{${imageProjection}}},
+    "references": *[_type == "projectReference"] | order(_createdAt asc){${sharedFields}, category, "image": gallery[0]{${imageProjection}}},
+    "newsPosts": *[_type == "newsPost"] | order(publishedAt desc){${sharedFields}, "image": mainImage{${imageProjection}}},
+    "faqs": *[_type == "faq"] | order(_createdAt asc){title, richText[]{${portableProjection}}}
   }`;
 }
 
