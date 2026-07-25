@@ -2,6 +2,12 @@
   "buildCommand": "node scripts/build-static.mjs",
   "outputDirectory": "dist",
   "trailingSlash": true,
+  "rewrites": [
+    {
+      "source": "/studio/:path*",
+      "destination": "/studio/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/studio/(.*)",
