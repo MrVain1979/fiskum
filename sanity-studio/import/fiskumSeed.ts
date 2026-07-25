@@ -182,9 +182,22 @@ export const fiskumSeedDocuments = [
     _id: "page-om-oss",
     _type: "page",
     title: "Om oss",
-    description: "Over 60 år med erfaring innen stål, metallarbeid og solide konstruksjoner.",
+    description: "Over 60 år med solid kompetanse i stål og metall.",
     slug: slug("/om-oss"),
-    pageBuilder: [{ _key: key("content"), _type: "cta", richText: [block("Fiskum Plate og Sveiseverksted AS er en erfaren samarbeidspartner for kunder som trenger solide løsninger innen stålbygg, metallarbeider, trapper, rekkverk og konstruksjoner."), block("Vi kombinerer tradisjonelt håndverk med moderne metoder og følger prosjektene fra første forespørsel til ferdig leveranse.")] }],
+    image: { _type: "image", assetPath: "/assets/hero-stalbygg.webp", alt: "Om oss" },
+    pageBuilder: [
+      {
+        _key: key("content"),
+        _type: "hero",
+        badge: "Om oss",
+        title: "Vi leverer alt innen stålbygg og konstruksjoner",
+        richText: [
+          block("Fiskum Plate og Sveiseverksted AS ligger sentralt plassert mellom Kongsberg og Drammen, med eget verksted på 2400 kvm. Vi er godt utstyrt i produksjonen og produserer stålkonstruksjoner for senere montasje ute på byggeplass."),
+          block("Vi har alle nødvendige godkjenninger, og er godkjent av Sintef for CE merking av våre konstruksjoner.\n\nBedriften ble startet i 1959, og vi er stolte av å fortsatt levere kvalitetsarbeid til våre kunder etter over 60 års drift."),
+          block("Vi har i dag ca 25 ansatte og er en aktør med stor kompetanse i bransjen. Vi jobber som under entreprenør for de store aktørene samt lokale både små og store entreprenører. Og kan blant annet nevne Nye Bislett Stadion som et av våre kjente oppdrag.\n\nVi leverer alt innen stålbygg og konstruksjoner. Våre montører og sveisere har alle nødvendige kurs og sertifikater. Vi disponerer egne lifter, alle kran og transportoppdrag håndteres internt, i samarbeid med FPS Kranservice AS (http://www.fpskran.no/)."),
+        ],
+      },
+    ],
   },
   {
     _id: "page-tjenester",

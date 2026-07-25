@@ -20,6 +20,10 @@ const importOrder: Record<string, number> = {
   homePage: 4,
 };
 
+const obsoleteDocumentIds = [
+  "6b67c293-6d5e-4015-9bef-dfd216ed3d8a",
+];
+
 function isObject(value: unknown): value is Record<string, any> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -84,6 +88,11 @@ function ImportContentTool() {
     try {
       const assetCache = new Map<string, string>();
       append(`Starter import av ${documents.length} dokumenter.`);
+
+      for (const id of obsoleteDocumentIds) {
+        await client.delete(id).catch(() => undefined);
+        append(`Ryddet gammelt duplikat: ${id}`);
+      }
 
       for (const document of documents) {
         const preparedDocument = await prepareValue(client, document, assetCache);
