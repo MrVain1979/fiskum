@@ -1,13 +1,5 @@
 {
-  "buildCommand": "node scripts/build-static.mjs",
-  "outputDirectory": "dist",
-  "trailingSlash": true,
-  "rewrites": [
-    {
-      "source": "/studio/:path*",
-      "destination": "/studio/index.html"
-    }
-  ],
+  "buildCommand": "node scripts/prepare-next-public.mjs && next build",
   "headers": [
     {
       "source": "/studio/(.*)",

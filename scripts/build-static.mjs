@@ -1,6 +1,6 @@
 import { access, cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const distMirrors = ["dist", "apps/studio/dist"];
@@ -256,11 +256,11 @@ function newsHref(post) {
   return `/${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}/${slug}/`;
 }
 
-function pageTitle(doc) {
+export function pageTitle(doc) {
   return doc?.title || doc?.internalTitle || "";
 }
 
-function pageLead(doc) {
+export function pageLead(doc) {
   return doc?.description || doc?.summary || doc?.excerpt || textFromBlocks(doc?.body) || textFromBlocks(doc?.richText);
 }
 
@@ -338,12 +338,17 @@ function renderContactForm(settings) {
   return `<section class="contact"><div class="contact-copy"><p class="eyebrow">Kontakt oss</p><h2>Send oss en forespørsel</h2><p>Har du spørsmål, er du alltid velkommen til å ta kontakt med oss.</p></div><form class="contact-form" action="${escapeHtml(action)}" method="POST" aria-label="Kontaktskjema"><input type="hidden" name="_subject" value="Ny forespørsel fra fiskum-sveis.no"><input type="hidden" name="_template" value="table"><input type="hidden" name="_captcha" value="false"><input type="hidden" name="_next" value="/kontakt-oss/"><input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" class="honeypot"><label>Navn<input type="text" name="name" autocomplete="name" placeholder="Ditt navn" required></label><label>E-post<input type="email" name="email" autocomplete="email" placeholder="din@epost.no" required></label><label>Telefon<input type="tel" name="phone" autocomplete="tel" placeholder="Telefonnummer"></label><label>Hva gjelder det?<select name="topic" required><option>Stålbygg</option><option>Vegger, fasade og tak</option><option>Broer</option><option>Trapper og rekkverk</option><option>Kranutleie</option><option>Annet</option></select></label><label>Beskjed<textarea name="message" rows="5" placeholder="Skriv kort hva du trenger hjelp med" required></textarea></label><button class="button primary" type="submit">Send forespørsel</button></form></section>`;
 }
 
-function pageHtml(data, path) {
+export function documentBody(data, path) {
+  const doc = data.document;
+  return `${renderHeader(data.settings, data.navbar)}${doc._type === "homePage" ? renderHome(data) : renderPage(data, path)}${renderFooter(data.settings, data.footer, data.navbar)}`;
+}
+
+export function pageHtml(data, path) {
   const doc = data.document;
   const title = pageTitle(doc) || data.settings?.siteTitle || "";
   const description = pageLead(doc) || data.settings?.siteDescription || "";
   const seoImage = imageUrl(doc?.seoImage || doc?.mainImage || doc?.image || doc?.heroImages?.[0] || doc?.gallery?.[0]);
-  const body = `${renderHeader(data.settings, data.navbar)}${doc._type === "homePage" ? renderHome(data) : renderPage(data, path)}${renderFooter(data.settings, data.footer, data.navbar)}`;
+  const body = documentBody(data, path);
   return `<!doctype html>
 <html lang="nb">
   <head>
@@ -368,7 +373,7 @@ function pageHtml(data, path) {
 `;
 }
 
-function contentQuery() {
+export function contentQuery() {
   const imageProjection = `alt, caption, crop, hotspot, "url": asset->url, asset->{url, metadata{dimensions{width,height}}}`;
   const portableProjection = `..., crop, hotspot, asset->{url, metadata{dimensions{width,height}}}`;
   const sharedFields = `_type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, icon, seoTitle, seoDescription, seoNoIndex, ogTitle, ogDescription, "slug": slug.current,
@@ -401,21 +406,21 @@ function contentQuery() {
   }`;
 }
 
-function queryUrl(query) {
+export function queryUrl(query) {
   const projectId = readEnv(["SANITY_PROJECT_ID", "SANITY_STUDIO_PROJECT_ID", "NEXT_PUBLIC_SANITY_PROJECT_ID"]);
   const dataset = readEnv(["SANITY_DATASET", "SANITY_STUDIO_DATASET", "NEXT_PUBLIC_SANITY_DATASET"]);
   const apiVersion = readEnv(["SANITY_API_VERSION", "SANITY_STUDIO_API_VERSION", "NEXT_PUBLIC_SANITY_API_VERSION"]);
   return `https://${projectId}.api.sanity.io/v${apiVersion}/data/query/${dataset}?query=${encodeURIComponent(query)}`;
 }
 
-function routeFor(doc) {
+export function routeFor(doc) {
   if (doc._type === "homePage") return "/";
   if (doc._type === "projectReference") return normalizePath(`/referanser/${String(doc.slug || "").replace(/^\/+|\/+$/g, "")}`);
   if (doc._type === "newsPost") return newsHref(doc);
   return normalizePath(doc.slug);
 }
 
-function validateContent(data, documents) {
+export function validateContent(data, documents) {
   const routes = new Set(documents.map(routeFor).filter(Boolean));
   const requiredRoutes = ["/", "/om-oss/", "/tjenester/", "/verksted/", "/referanser/", "/aktuelt/", "/kontakt-oss/", "/kranutleie/", "/stalbygg/", "/vegger/", "/broer/", "/trapper/"];
   const missingRoutes = requiredRoutes.filter((route) => !routes.has(route));
@@ -433,7 +438,7 @@ function validateContent(data, documents) {
   return issues;
 }
 
-function cmsErrorHtml(issues) {
+export function cmsErrorHtml(issues) {
   const title = "Sanity mangler innhold";
   return `<!doctype html>
 <html lang="nb">
@@ -529,11 +534,26 @@ async function prepareStudioStaticRoutes() {
   }
 }
 
-async function build() {
-  const response = await fetch(queryUrl(contentQuery()));
+export async function fetchContent(fetchOptions = {}, cacheKey = "") {
+  const url = cacheKey ? `${queryUrl(contentQuery())}&$cacheKey=${encodeURIComponent(JSON.stringify(cacheKey))}` : queryUrl(contentQuery());
+  const response = await fetch(url, fetchOptions);
   if (!response.ok) throw new Error(`Sanity svarte ${response.status} under build.`);
   const payload = await response.json();
-  const data = payload.result;
+  return payload.result;
+}
+
+export function allDocuments(data) {
+  return [
+    data.homePage,
+    ...(data.pages || []),
+    ...(data.services || []),
+    ...(data.references || []),
+    ...(data.newsPosts || []),
+  ].filter(Boolean);
+}
+
+async function build() {
+  const data = await fetchContent();
   const documents = [
     data.homePage,
     ...(data.pages || []),
@@ -570,4 +590,6 @@ async function build() {
   console.log(`Generated ${routes.size} Sanity-backed routes.`);
 }
 
-await build();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await build();
+}

@@ -7,8 +7,11 @@ apps/studio/sanity-env.js
 dist/
 apps/studio/dist/
 node_modules/
-pnpm-lock.yaml
-pnpm-workspace.yaml
+.next/
+public/
+studio-build-check/
+.config/
+sanity-studio/.config/
 .pnpm-*/
 .home-vercel/
 .appdata-vercel/

@@ -1,5 +1,13 @@
 {
+  "type": "module",
   "scripts": {
-    "build": "node scripts/build-static.mjs"
+    "build": "node scripts/prepare-next-public.mjs && next build",
+    "build:static": "node scripts/build-static.mjs"
+  },
+  "dependencies": {
+    "next": "^15.4.3",
+    "next-sanity": "^10.0.11",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   }
 }
