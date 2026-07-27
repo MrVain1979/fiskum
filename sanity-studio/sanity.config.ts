@@ -10,7 +10,6 @@ import { iconPicker } from "sanity-plugin-icon-picker";
 import { media, mediaAssetSource } from "sanity-plugin-media";
 
 import { LivePreviewLayout } from "./components/live-preview-layout";
-import { importContentTool } from "./import/importContentTool";
 import { Logo } from "./components/logo";
 import { schemaTypes } from "./schemaTypes";
 import { structure } from "./structure";
@@ -71,5 +70,4 @@ export default defineConfig({
     types: schemaTypes,
     templates: createPageTemplate(),
   },
-  tools: (prev) => [...prev, importContentTool],
 });
