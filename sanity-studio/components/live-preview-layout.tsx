@@ -112,6 +112,13 @@ function getRoute(document: Partial<SanityDocument> | null, documentType: string
   return normalizeRoute(slug);
 }
 
+function fallbackRoute(documentType: string) {
+  if (documentType === "newsPost") return "/aktuelt/";
+  if (documentType === "projectReference") return "/referanser/";
+  if (documentType === "service") return "/tjenester/";
+  return "/";
+}
+
 function textFromPortableText(value: unknown) {
   if (!Array.isArray(value)) return "";
   return value
@@ -349,6 +356,7 @@ function renderHeroDots(document: Partial<SanityDocument> | null) {
 function applyDraftToPageHtml(
   html: string,
   route: string,
+  sourceRoute: string,
   document: Partial<SanityDocument> | null,
   documentType: string,
 ) {
@@ -421,10 +429,19 @@ function applyDraftToPageHtml(
 
   if (contentStack && draftBody.trim()) {
     contentStack.innerHTML = draftBody;
+  } else if (draftBody.trim() && ["newsPost", "projectReference", "service"].includes(documentType)) {
+    const main = doc.querySelector("main") || doc.body;
+    const article = doc.createElement("section");
+    article.className = "section content-stack is-visible";
+    article.innerHTML = draftBody;
+    main.append(article);
   }
 
   const notice = doc.createElement("div");
-  notice.textContent = `Live preview fra Sanity draft - ${route}`;
+  notice.textContent =
+    sourceRoute === route
+      ? `Live preview fra Sanity draft - ${route}`
+      : `Live preview fra Sanity draft - ${route} (bruker ${sourceRoute} som mal)`;
   notice.setAttribute(
     "style",
     [
@@ -565,10 +582,42 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
         return response.text();
       })
       .then((pageHtml) => {
-        setHtml(applyDraftToPageHtml(pageHtml, route, document, props.documentType));
+        setHtml(applyDraftToPageHtml(pageHtml, route, route, document, props.documentType));
       })
       .catch((error) => {
         if (controller.signal.aborted) return;
+        const sourceRoute = fallbackRoute(props.documentType);
+
+        if (sourceRoute !== route) {
+          fetch(sourceRoute, { cache: "no-store", signal: controller.signal })
+            .then((response) => {
+              if (!response.ok) throw error;
+              return response.text();
+            })
+            .then((pageHtml) => {
+              setHtml(
+                applyDraftToPageHtml(
+                  pageHtml,
+                  route,
+                  sourceRoute,
+                  document,
+                  props.documentType,
+                ),
+              );
+            })
+            .catch((fallbackError) => {
+              if (controller.signal.aborted) return;
+              setHtml(`<!doctype html>
+<html lang="no">
+  <body style="font-family:Arial,sans-serif;padding:32px;background:#f3f1ec;color:#111">
+    <h1>Preview kunne ikke lastes</h1>
+    <p>${String(fallbackError instanceof Error ? fallbackError.message : fallbackError)}</p>
+  </body>
+</html>`);
+            });
+          return;
+        }
+
         setHtml(`<!doctype html>
 <html lang="no">
   <body style="font-family:Arial,sans-serif;padding:32px;background:#f3f1ec;color:#111">
