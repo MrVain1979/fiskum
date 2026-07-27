@@ -87,16 +87,17 @@ function normalizeRoute(route: string) {
   return `${route.replace(/\/+$/, "")}/`;
 }
 
-function getRoute(document: Partial<SanityDocument> | null, documentType: string) {
+function getRoute(document: Partial<SanityDocument> | null, documentType?: string) {
   const slug = getSlug(document);
+  const type = documentType || getString(document, ["_type"]);
 
-  if (documentType === "settings") return "/";
-  if (documentType === "homePage") return "/";
-  if (documentType === "projectReference") {
+  if (type === "settings") return "/";
+  if (type === "homePage") return "/";
+  if (type === "projectReference") {
     return normalizeRoute(`/referanser${slug}`);
   }
 
-  if (documentType === "newsPost") {
+  if (type === "newsPost") {
     const publishedAt = getString(document, ["publishedAt"]);
     if (publishedAt) {
       const date = new Date(publishedAt);
@@ -255,17 +256,11 @@ function resolveLink(url: unknown) {
     type?: string;
     external?: string;
     href?: string;
-    internal?: { slug?: { current?: string } } | { slug?: string };
+    internal?: Partial<SanityDocument> & ({ slug?: { current?: string } } | { slug?: string });
   };
 
   if (value.type === "internal") {
-    const slug =
-      typeof value.internal?.slug === "string"
-        ? value.internal.slug
-        : value.internal?.slug?.current;
-    if (!slug) return "";
-    const path = slug.startsWith("/") ? slug : `/${slug}`;
-    return path.endsWith("/") ? path : `${path}/`;
+    return getRoute(value.internal || null);
   }
 
   return value.external || value.href || "";

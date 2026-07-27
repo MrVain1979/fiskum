@@ -43,6 +43,8 @@ function affectedRoutes(body) {
       return ["site-shell"];
     case "faq":
       return ["/", "site-shell"];
+    case "redirect":
+      return [normalizePath(body.from), "site-shell"];
     default:
       return [];
   }

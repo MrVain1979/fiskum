@@ -1,9 +1,10 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import {
   allDocuments,
   documentBody,
   fetchContent,
+  findRedirect,
   pageLead,
   pageTitle,
   routeFor,
@@ -112,7 +113,15 @@ export default async function Page({ params }) {
   const { data, documents, document } = await getDataForPath(path);
 
   const issues = validateContent(data, documents);
-  if (issues.length || !document) notFound();
+  if (issues.length) notFound();
+  if (!document) {
+    const redirectRule = findRedirect(data, path);
+    if (redirectRule?.destination) {
+      if (redirectRule.permanent) permanentRedirect(redirectRule.destination);
+      redirect(redirectRule.destination);
+    }
+    notFound();
+  }
 
   return (
     <div

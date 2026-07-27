@@ -6,6 +6,7 @@ import {
   FolderKanban,
   HomeIcon,
   ImageIcon,
+  LinkIcon,
   Newspaper,
   PanelBottomIcon,
   PanelTopDashedIcon,
@@ -62,6 +63,7 @@ export const structure = (
       createList({ S, type: "service", title: "Tjenester", icon: Wrench }),
       createList({ S, type: "projectReference", title: "Referanser", icon: ImageIcon }),
       createList({ S, type: "newsPost", title: "Aktuelt", icon: Newspaper }),
+      createList({ S, type: "redirect", title: "URL-videresendinger", icon: LinkIcon }),
       S.divider(),
       S.listItem()
         .title("Globale innstillinger")

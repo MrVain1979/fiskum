@@ -51,8 +51,22 @@ function normalizePath(value = "") {
 
 function resolveLink(url) {
   if (!url) return "";
-  if (url.type === "internal") return normalizePath(url.internal?.slug);
+  if (url.type === "internal") return routeFor(url.internal || {});
   return url.external || url.href || "";
+}
+
+export function findRedirect(data, path) {
+  const source = normalizePath(path);
+  const redirect = (data?.redirects || []).find((item) => normalizePath(item.from) === source);
+  if (!redirect) return null;
+
+  const destination = resolveLink(redirect.to);
+  if (!destination || destination === source) return null;
+
+  return {
+    destination,
+    permanent: redirect.permanent !== false,
+  };
 }
 
 function imageSource(image) {
@@ -376,6 +390,8 @@ export function pageHtml(data, path) {
 export function contentQuery() {
   const imageProjection = `alt, caption, crop, hotspot, "url": asset->url, asset->{url, metadata{dimensions{width,height}}}`;
   const portableProjection = `..., crop, hotspot, asset->{url, metadata{dimensions{width,height}}}`;
+  const internalLinkProjection = `_type, "slug": slug.current, publishedAt`;
+  const linkProjection = `type, external, href, internal->{${internalLinkProjection}}`;
   const sharedFields = `_type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, icon, seoTitle, seoDescription, seoNoIndex, ogTitle, ogDescription, "slug": slug.current,
     image{${imageProjection}},
     seoImage{${imageProjection}},
@@ -390,19 +406,20 @@ export function contentQuery() {
       richText[]{${portableProjection}},
       cards[]{..., image{${imageProjection}}, richText[]{${portableProjection}}},
       faqs[]->{title, richText[]{${portableProjection}}},
-      buttons[]{text, variant, url{type, external, href, internal->{_type, "slug": slug.current}}}
+      buttons[]{text, variant, url{${linkProjection}}}
     },
     "pdfFiles": pdfFiles[]{title, description, "url": file.asset->url}`;
   return `{
     "settings": *[_type == "settings"][0]{companyName, siteTitle, siteDescription, phone, contactEmail, address, socialLinks, logo{${imageProjection}}, "logoUrl": logo.asset->url},
-    "navbar": *[_type == "navbar"][0]{columns[]{_type, name, title, url{type, external, href, internal->{_type, "slug": slug.current}}, links[]{name, url{type, external, href, internal->{_type, "slug": slug.current}}}}},
-    "footer": *[_type == "footer"][0]{subtitle, columns[]{title, links[]{name, url{type, external, href, internal->{_type, "slug": slug.current}}}}},
+    "navbar": *[_type == "navbar"][0]{columns[]{_type, name, title, url{${linkProjection}}, links[]{name, url{${linkProjection}}}}},
+    "footer": *[_type == "footer"][0]{subtitle, columns[]{title, links[]{name, url{${linkProjection}}}}},
     "homePage": *[_type == "homePage"][0]{${sharedFields}},
     "pages": *[_type == "page"] | order(_createdAt asc){${sharedFields}},
     "services": *[_type == "service"] | order(_createdAt asc){${sharedFields}, "image": gallery[0]{${imageProjection}}},
     "references": *[_type == "projectReference"] | order(_createdAt asc){${sharedFields}, category, "image": gallery[0]{${imageProjection}}},
     "newsPosts": *[_type == "newsPost"] | order(publishedAt desc){${sharedFields}, "image": mainImage{${imageProjection}}},
-    "faqs": *[_type == "faq"] | order(_createdAt asc){title, richText[]{${portableProjection}}}
+    "faqs": *[_type == "faq"] | order(_createdAt asc){title, richText[]{${portableProjection}}},
+    "redirects": *[_type == "redirect"] | order(_createdAt asc){title, from, permanent, to{${linkProjection}}}
   }`;
 }
 
@@ -461,6 +478,23 @@ export function cmsErrorHtml(issues) {
         </div>
       </section>
     </main>
+  </body>
+</html>
+`;
+}
+
+function redirectHtml(destination) {
+  return `<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="refresh" content="0; url=${escapeHtml(destination)}" />
+    <link rel="canonical" href="${escapeHtml(destination)}" />
+    <title>Videresender</title>
+  </head>
+  <body>
+    <p>Videresender til <a href="${escapeHtml(destination)}">${escapeHtml(destination)}</a>.</p>
   </body>
 </html>
 `;
@@ -582,6 +616,13 @@ async function build() {
 
   const aktuelt = documents.find((doc) => routeFor(doc) === "/aktuelt/");
   if (aktuelt) await writeRoute("/category/aktuelt/", pageHtml({ ...data, document: aktuelt }, "/category/aktuelt/"));
+
+  for (const redirectRule of data.redirects || []) {
+    const source = normalizePath(redirectRule.from);
+    const destination = resolveLink(redirectRule.to);
+    if (!source || !destination || source === destination || routes.has(source)) continue;
+    await writeRoute(source, redirectHtml(destination));
+  }
 
   console.log(`Generated ${routes.size} Sanity-backed routes.`);
 }
