@@ -421,9 +421,6 @@ export function routeFor(doc) {
 }
 
 export function validateContent(data, documents) {
-  const routes = new Set(documents.map(routeFor).filter(Boolean));
-  const requiredRoutes = ["/", "/om-oss/", "/tjenester/", "/verksted/", "/referanser/", "/aktuelt/", "/kontakt-oss/", "/kranutleie/", "/stalbygg/", "/vegger/", "/broer/", "/trapper/"];
-  const missingRoutes = requiredRoutes.filter((route) => !routes.has(route));
   const issues = [];
 
   if (!data?.settings) issues.push("Mangler Site Settings i Sanity.");
@@ -433,7 +430,6 @@ export function validateContent(data, documents) {
   if ((data?.services || []).length < 4) issues.push(`Mangler tjeneste-dokumenter i Sanity. Fant ${(data?.services || []).length}, forventet minst 4.`);
   if ((data?.references || []).length < 4) issues.push(`Mangler referanse-dokumenter i Sanity. Fant ${(data?.references || []).length}, forventet minst 4.`);
   if ((data?.newsPosts || []).length < 1) issues.push("Mangler nyheter/Aktuelt i Sanity.");
-  if (missingRoutes.length) issues.push(`Mangler publiserte ruter i Sanity: ${missingRoutes.join(", ")}`);
 
   return issues;
 }
@@ -461,7 +457,7 @@ export function cmsErrorHtml(issues) {
         <div class="content-stack">
           <h2>Dette mangler før produksjonsbuild</h2>
           <ul>${issues.map((issue) => `<li>${escapeHtml(issue)}</li>`).join("")}</ul>
-          <p><a class="button primary" href="/studio/import-fiskum-content">Åpne importverktøy i Sanity Studio</a></p>
+          <p><a class="button primary" href="/studio/">Åpne Sanity Studio</a></p>
         </div>
       </section>
     </main>
@@ -519,7 +515,7 @@ async function prepareDist() {
 }
 
 async function prepareStudioStaticRoutes() {
-  const studioRoutes = ["structure", "import-fiskum-content"];
+  const studioRoutes = ["structure"];
 
   for (const mirror of mirrors) {
     const base = mirror ? join(root, mirror) : root;

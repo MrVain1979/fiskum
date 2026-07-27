@@ -11,6 +11,7 @@ import {
 } from "../../scripts/build-static.mjs";
 
 export const dynamic = "force-static";
+export const dynamicParams = true;
 
 function normalizePath(value = "") {
   if (!value || value === "/") return "/";

@@ -28,21 +28,21 @@ function affectedRoutes(body) {
 
   switch (body?._type) {
     case "homePage":
-      return ["/"];
+      return ["/", "site-shell"];
     case "page":
-      return [normalizePath(slug)];
+      return [normalizePath(slug), "site-shell"];
     case "service":
-      return [normalizePath(slug), "/", "/tjenester/"];
+      return [normalizePath(slug), "/", "/tjenester/", "site-shell"];
     case "projectReference":
-      return [normalizePath(`/referanser/${String(slug).replace(/^\/+|\/+$/g, "")}`), "/referanser/"];
+      return [normalizePath(`/referanser/${String(slug).replace(/^\/+|\/+$/g, "")}`), "/referanser/", "site-shell"];
     case "newsPost":
-      return [newsPath(slug, body.publishedAt), "/", "/aktuelt/", "/category/aktuelt/"];
+      return [newsPath(slug, body.publishedAt), "/", "/aktuelt/", "/category/aktuelt/", "site-shell"];
     case "settings":
     case "navbar":
     case "footer":
       return ["site-shell"];
     case "faq":
-      return ["/"];
+      return ["/", "site-shell"];
     default:
       return [];
   }
