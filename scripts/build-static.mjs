@@ -600,7 +600,6 @@ async function build() {
   if (issues.length) {
     const html = cmsErrorHtml(issues);
     await writeRoute("/", html);
-    await writeRoute("/studio-import/", html);
     console.warn(`Sanity-innholdet er ikke komplett. Skrev tydelig CMS-feilside uten fallback:\n- ${issues.join("\n- ")}`);
     return;
   }

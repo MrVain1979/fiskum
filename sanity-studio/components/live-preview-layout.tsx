@@ -569,22 +569,26 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
     if (!previewTypes.has(props.documentType)) return;
 
     const controller = new AbortController();
+    const sourceRoute =
+      ["newsPost", "projectReference", "service"].includes(props.documentType) && route !== fallbackRoute(props.documentType)
+        ? fallbackRoute(props.documentType)
+        : route;
     setIsLoading(true);
 
-    fetch(route, { cache: "no-store", signal: controller.signal })
+    fetch(sourceRoute, { cache: "no-store", signal: controller.signal })
       .then((response) => {
-        if (!response.ok) throw new Error(`Kunne ikke laste ${route}`);
+        if (!response.ok) throw new Error(`Kunne ikke laste ${sourceRoute}`);
         return response.text();
       })
       .then((pageHtml) => {
-        setHtml(applyDraftToPageHtml(pageHtml, route, route, document, props.documentType));
+        setHtml(applyDraftToPageHtml(pageHtml, route, sourceRoute, document, props.documentType));
       })
       .catch((error) => {
         if (controller.signal.aborted) return;
-        const sourceRoute = fallbackRoute(props.documentType);
+        const fallback = fallbackRoute(props.documentType);
 
-        if (sourceRoute !== route) {
-          fetch(sourceRoute, { cache: "no-store", signal: controller.signal })
+        if (fallback !== sourceRoute) {
+          fetch(fallback, { cache: "no-store", signal: controller.signal })
             .then((response) => {
               if (!response.ok) throw error;
               return response.text();
@@ -594,7 +598,7 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
                 applyDraftToPageHtml(
                   pageHtml,
                   route,
-                  sourceRoute,
+                  fallback,
                   document,
                   props.documentType,
                 ),
