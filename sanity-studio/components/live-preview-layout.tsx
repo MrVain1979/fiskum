@@ -1,6 +1,6 @@
-import { Box, Card, Flex, Spinner, Stack, Text } from "@sanity/ui";
+import { Box, Card, Flex, Stack, Text } from "@sanity/ui";
 import type { CSSProperties } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useEditState, type SanityDocument } from "sanity";
 import type { DocumentLayoutProps } from "sanity";
 
@@ -118,6 +118,20 @@ function fallbackRoute(documentType: string) {
   if (documentType === "projectReference") return "/referanser/";
   if (documentType === "service") return "/tjenester/";
   return "/";
+}
+
+function previewPath(route: string) {
+  if (route === "/") return "/preview/";
+  return `/preview${route.startsWith("/") ? route : `/${route}`}`;
+}
+
+function documentVersion(document: Partial<SanityDocument> | null) {
+  const json = JSON.stringify(document || {});
+  let hash = 0;
+  for (let index = 0; index < json.length; index += 1) {
+    hash = (hash * 31 + json.charCodeAt(index)) >>> 0;
+  }
+  return String(hash);
 }
 
 function textFromPortableText(value: unknown) {
@@ -562,75 +576,13 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
     () => getRoute(document, props.documentType),
     [document, props.documentType],
   );
-  const [html, setHtml] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (!previewTypes.has(props.documentType)) return;
-
-    const controller = new AbortController();
-    const sourceRoute =
-      ["newsPost", "projectReference", "service"].includes(props.documentType) && route !== fallbackRoute(props.documentType)
-        ? fallbackRoute(props.documentType)
-        : route;
-    setIsLoading(true);
-
-    fetch(sourceRoute, { cache: "no-store", signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error(`Kunne ikke laste ${sourceRoute}`);
-        return response.text();
-      })
-      .then((pageHtml) => {
-        setHtml(applyDraftToPageHtml(pageHtml, route, sourceRoute, document, props.documentType));
-      })
-      .catch((error) => {
-        if (controller.signal.aborted) return;
-        const fallback = fallbackRoute(props.documentType);
-
-        if (fallback !== sourceRoute) {
-          fetch(fallback, { cache: "no-store", signal: controller.signal })
-            .then((response) => {
-              if (!response.ok) throw error;
-              return response.text();
-            })
-            .then((pageHtml) => {
-              setHtml(
-                applyDraftToPageHtml(
-                  pageHtml,
-                  route,
-                  fallback,
-                  document,
-                  props.documentType,
-                ),
-              );
-            })
-            .catch((fallbackError) => {
-              if (controller.signal.aborted) return;
-              setHtml(`<!doctype html>
-<html lang="no">
-  <body style="font-family:Arial,sans-serif;padding:32px;background:#f3f1ec;color:#111">
-    <h1>Preview kunne ikke lastes</h1>
-    <p>${String(fallbackError instanceof Error ? fallbackError.message : fallbackError)}</p>
-  </body>
-</html>`);
-            });
-          return;
-        }
-
-        setHtml(`<!doctype html>
-<html lang="no">
-  <body style="font-family:Arial,sans-serif;padding:32px;background:#f3f1ec;color:#111">
-    <h1>Preview kunne ikke lastes</h1>
-    <p>${String(error instanceof Error ? error.message : error)}</p>
-  </body>
-</html>`);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [document, props.documentType, route]);
+  const previewSrc = useMemo(() => {
+    const url = new URL(previewPath(route), window.location.origin);
+    url.searchParams.set("id", props.documentId);
+    url.searchParams.set("type", props.documentType);
+    url.searchParams.set("v", documentVersion(document));
+    return url.toString();
+  }, [document, props.documentId, props.documentType, route]);
 
   if (!previewTypes.has(props.documentType)) {
     return props.renderDefault(props);
@@ -647,11 +599,10 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
                 Live preview
               </Text>
               <Text size={1} muted>
-                Viser faktisk nettside og oppdaterer draft-tekst mens du skriver.
+                Viser Next preview med Sanity draft-data uten offentlig cache.
               </Text>
             </Stack>
             <Flex align="center" gap={2}>
-              {isLoading ? <Spinner muted /> : null}
               <Text size={1} muted>
                 {state.ready ? route : "Laster"}
               </Text>
@@ -659,7 +610,7 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
           </Flex>
         </Card>
         <Box flex={1} style={{ minHeight: 0 }}>
-          <iframe title="Live preview" srcDoc={html} style={iframeStyle} />
+          <iframe title="Live preview" src={previewSrc} style={iframeStyle} />
         </Box>
       </div>
     </div>

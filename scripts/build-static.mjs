@@ -390,9 +390,9 @@ export function pageHtml(data, path) {
 export function contentQuery() {
   const imageProjection = `alt, caption, crop, hotspot, "url": asset->url, asset->{url, metadata{dimensions{width,height}}}`;
   const portableProjection = `..., crop, hotspot, asset->{url, metadata{dimensions{width,height}}}`;
-  const internalLinkProjection = `_type, "slug": slug.current, publishedAt`;
+  const internalLinkProjection = `_id, _type, "slug": slug.current, publishedAt`;
   const linkProjection = `type, external, href, internal->{${internalLinkProjection}}`;
-  const sharedFields = `_type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, icon, seoTitle, seoDescription, seoNoIndex, ogTitle, ogDescription, "slug": slug.current,
+  const sharedFields = `_id, _type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, icon, seoTitle, seoDescription, seoNoIndex, ogTitle, ogDescription, "slug": slug.current,
     image{${imageProjection}},
     seoImage{${imageProjection}},
     mainImage{${imageProjection}},
@@ -423,11 +423,12 @@ export function contentQuery() {
   }`;
 }
 
-export function queryUrl(query) {
+export function queryUrl(query, params = {}) {
   const projectId = readEnv(["SANITY_PROJECT_ID", "SANITY_STUDIO_PROJECT_ID", "NEXT_PUBLIC_SANITY_PROJECT_ID"]);
   const dataset = readEnv(["SANITY_DATASET", "SANITY_STUDIO_DATASET", "NEXT_PUBLIC_SANITY_DATASET"]);
   const apiVersion = readEnv(["SANITY_API_VERSION", "SANITY_STUDIO_API_VERSION", "NEXT_PUBLIC_SANITY_API_VERSION"]);
-  return `https://${projectId}.api.sanity.io/v${apiVersion}/data/query/${dataset}?query=${encodeURIComponent(query)}`;
+  const searchParams = new URLSearchParams({ query, ...params });
+  return `https://${projectId}.api.sanity.io/v${apiVersion}/data/query/${dataset}?${searchParams.toString()}`;
 }
 
 export function routeFor(doc) {
@@ -568,6 +569,23 @@ export async function fetchContent(fetchOptions = {}, cacheKey = "") {
   const url = cacheKey ? `${queryUrl(contentQuery())}&$cacheKey=${encodeURIComponent(JSON.stringify(cacheKey))}` : queryUrl(contentQuery());
   const response = await fetch(url, fetchOptions);
   if (!response.ok) throw new Error(`Sanity svarte ${response.status} under build.`);
+  const payload = await response.json();
+  return payload.result;
+}
+
+export async function fetchPreviewContent(fetchOptions = {}) {
+  const token = process.env.SANITY_API_READ_TOKEN || process.env.SANITY_READ_TOKEN || process.env.SANITY_VIEWER_TOKEN;
+  if (!token) throw new Error("Mangler SANITY_API_READ_TOKEN for draft preview.");
+
+  const response = await fetch(queryUrl(contentQuery(), { perspective: "drafts" }), {
+    ...fetchOptions,
+    cache: "no-store",
+    headers: {
+      ...(fetchOptions.headers || {}),
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) throw new Error(`Sanity svarte ${response.status} under draft preview.`);
   const payload = await response.json();
   return payload.result;
 }
