@@ -574,8 +574,22 @@ export async function fetchContent(fetchOptions = {}, cacheKey = "") {
 }
 
 export async function fetchPreviewContent(fetchOptions = {}) {
-  const token = process.env.SANITY_API_READ_TOKEN || process.env.SANITY_READ_TOKEN || process.env.SANITY_VIEWER_TOKEN;
-  if (!token) throw new Error("Mangler SANITY_API_READ_TOKEN for draft preview.");
+  const tokenEnvNames = [
+    "SANITY_API_READ_TOKEN",
+    "SANITY_READ_TOKEN",
+    "SANITY_VIEWER_TOKEN",
+    "SANITY_PREVIEW_TOKEN",
+    "SANITY_STUDIO_READ_TOKEN",
+    "SANITY_STUDIO_API_TOKEN",
+    "SANITY_TOKEN",
+    "SANITY_AUTH_TOKEN",
+  ];
+  const token = tokenEnvNames.map((name) => process.env[name]).find(Boolean);
+  if (!token) {
+    throw new Error(
+      `Mangler Sanity read-token for draft preview. Legg inn en av disse i Vercel Production: ${tokenEnvNames.join(", ")}.`,
+    );
+  }
 
   const response = await fetch(queryUrl(contentQuery(), { perspective: "drafts" }), {
     ...fetchOptions,
