@@ -746,6 +746,11 @@ cite {
   gap: 14px;
 }
 
+/* Temporarily hidden until the customer activates FormSubmit. */
+.contact-page .contact {
+  display: none;
+}
+
 label {
   display: grid;
   gap: 6px;
