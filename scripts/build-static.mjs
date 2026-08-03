@@ -195,12 +195,43 @@ function renderServiceCard(service) {
   return `<a class="service-card" href="${escapeHtml(normalizePath(service.slug))}"><span class="service-icon" aria-hidden="true">${serviceIconSvg(service)}</span><h3>${escapeHtml(pageTitle(service))}</h3><p>${escapeHtml(service.summary || "")}</p></a>`;
 }
 
-function renderBuilder(blocks = []) {
+function renderBuilder(blocks = [], options = {}) {
   if (!Array.isArray(blocks)) return "";
+  let heroIndex = 0;
+  let ctaIndex = 0;
   return blocks
     .map((block) => {
       if (!block?._type) return "";
-      if (block._type === "hero" || block._type === "cta") {
+      if (block._type === "hero") {
+        const currentHeroIndex = heroIndex++;
+        const isHome = options.home === true;
+        const services = options.services || [];
+
+        if (isHome && currentHeroIndex === 0) {
+          return `<section class="section cms-block home-services-intro"><div class="home-services-heading">${block.eyebrow || block.badge ? `<p class="eyebrow">${escapeHtml(block.eyebrow || block.badge)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}</div><div class="home-services-copy">${renderBlocks(block.richText)}${renderButtons(block.buttons)}${services.length ? '<a class="section-link" href="/tjenester/">Se alle tjenester</a>' : ""}</div></section>${services.length ? `<section class="section services home-services-grid" aria-label="Tjenester">${services.map(renderServiceCard).join("")}</section>` : ""}`;
+        }
+
+        if (isHome && currentHeroIndex === 1) {
+          const image = block.image || options.proofImage;
+          return `<section class="section cms-block home-proof"><div class="home-proof-media">${imageUrl(image) ? renderImage(image, image.alt || block.title || "", ' loading="lazy" decoding="async"') : ""}</div><div class="home-proof-copy">${block.eyebrow || block.badge ? `<p class="eyebrow">${escapeHtml(block.eyebrow || block.badge)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}${renderButtons(block.buttons)}</div></section>`;
+        }
+
+        return `<section class="section cms-block">${block.eyebrow || block.badge ? `<p class="eyebrow">${escapeHtml(block.eyebrow || block.badge)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}${renderButtons(block.buttons)}</section>`;
+      }
+      if (block._type === "cta") {
+        const currentCtaIndex = ctaIndex++;
+        const isHome = options.home === true;
+        const services = options.services || [];
+
+        if (isHome && currentCtaIndex === 0) {
+          return `<section class="section cms-block home-services-intro"><div class="home-services-heading">${block.eyebrow || block.badge ? `<p class="eyebrow">${escapeHtml(block.eyebrow || block.badge)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}</div><div class="home-services-copy">${renderBlocks(block.richText)}${renderButtons(block.buttons)}${services.length ? '<a class="section-link" href="/tjenester/">Se alle tjenester</a>' : ""}</div></section>${services.length ? `<section class="section services home-services-grid" aria-label="Tjenester">${services.map(renderServiceCard).join("")}</section>` : ""}`;
+        }
+
+        if (isHome && currentCtaIndex === 1) {
+          const image = block.image || options.proofImage;
+          return `<section class="section cms-block home-proof"><div class="home-proof-media">${imageUrl(image) ? renderImage(image, image.alt || block.title || "", ' loading="lazy" decoding="async"') : ""}</div><div class="home-proof-copy">${block.eyebrow || block.badge ? `<p class="eyebrow">${escapeHtml(block.eyebrow || block.badge)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}${renderButtons(block.buttons)}</div></section>`;
+        }
+
         return `<section class="section cms-block">${block.eyebrow || block.badge ? `<p class="eyebrow">${escapeHtml(block.eyebrow || block.badge)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}${renderButtons(block.buttons)}</section>`;
       }
       if (block._type === "featureCardsIcon") {
@@ -304,7 +335,8 @@ function renderHome(data) {
   const services = data.services || [];
   const news = data.newsPosts || [];
   const faqs = data.faqs || [];
-  return `<main id="top">${renderHero(data)}${renderBuilder(doc.pageBuilder)}${services.length ? `<section class="section services">${services.map(renderServiceCard).join("")}</section>` : ""}${news.length ? `<section class="section news"><div class="section-heading"><p class="eyebrow">Aktuelt</p><h2>Aktuelt</h2></div><div class="news-grid">${news.slice(0, 2).map(renderNewsCard).join("")}</div><a class="back-link" href="/aktuelt/">Se alle nyheter</a></section>` : ""}${faqs.length ? `<section class="section faq"><div class="section-heading"><p class="eyebrow">FAQ</p><h2>Ofte stilte spørsmål</h2></div>${faqs.map((faq, index) => `<details ${index === 0 ? "open" : ""}><summary>${escapeHtml(faq.title || "")}</summary>${renderBlocks(faq.richText)}</details>`).join("")}</section>` : ""}</main>`;
+  const proofImage = doc.heroImages?.[2] || doc.heroImages?.[1] || doc.heroImages?.[0];
+  return `<main id="top">${renderHero(data)}${renderBuilder(doc.pageBuilder, { home: true, services, proofImage })}${news.length ? `<section class="section news"><div class="section-heading"><p class="eyebrow">Aktuelt</p><h2>Aktuelt</h2></div><div class="news-grid">${news.slice(0, 2).map(renderNewsCard).join("")}</div><a class="back-link" href="/aktuelt/">Se alle nyheter</a></section>` : ""}${faqs.length ? `<section class="section faq"><div class="section-heading"><p class="eyebrow">FAQ</p><h2>Ofte stilte spørsmål</h2></div>${faqs.map((faq, index) => `<details ${index === 0 ? "open" : ""}><summary>${escapeHtml(faq.title || "")}</summary>${renderBlocks(faq.richText)}</details>`).join("")}</section>` : ""}</main>`;
 }
 
 function renderNewsCard(post) {

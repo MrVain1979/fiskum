@@ -1290,6 +1290,110 @@ textarea {
   margin-top: 1rem;
 }
 
+.home-services-intro {
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.68fr);
+  gap: clamp(36px, 7vw, 96px);
+  align-items: end;
+  padding-bottom: clamp(38px, 5vw, 58px);
+}
+
+.home-services-heading,
+.home-services-copy,
+.home-proof-copy {
+  min-width: 0;
+}
+
+.home-services-heading h2 {
+  max-width: 850px;
+  margin-bottom: 0;
+}
+
+.home-services-copy {
+  padding-bottom: 0.35rem;
+}
+
+.home-services-copy > p {
+  color: var(--muted);
+  font-size: 1.03rem;
+  line-height: 1.72;
+}
+
+.section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  color: var(--blue);
+  font-weight: 850;
+}
+
+.section-link::after {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: currentColor;
+  transition: width 0.22s var(--ease);
+}
+
+.section-link:hover::after,
+.section-link:focus-visible::after {
+  width: 40px;
+}
+
+.home-services-grid {
+  padding-top: 0;
+}
+
+.home-proof {
+  grid-template-columns: minmax(0, 1.06fr) minmax(360px, 0.82fr);
+  gap: 0;
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  background: var(--dark-panel);
+  color: #fff;
+}
+
+.home-proof-media {
+  min-height: clamp(480px, 50vw, 680px);
+  overflow: hidden;
+}
+
+.home-proof-media:empty {
+  background: #202832;
+}
+
+.home-proof-media img {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  object-fit: cover;
+  transition: transform 0.7s var(--ease);
+}
+
+.home-proof:hover .home-proof-media img {
+  transform: scale(1.025);
+}
+
+.home-proof-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(52px, 7vw, 104px) clamp(34px, 6vw, 92px);
+}
+
+.home-proof-copy h2 {
+  max-width: 680px;
+  margin-bottom: 24px;
+}
+
+.home-proof-copy > p:not(.eyebrow) {
+  max-width: 620px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 1.06rem;
+  line-height: 1.75;
+}
+
 .cms-shell {
   min-height: 100vh;
   background: var(--bg);
@@ -1541,10 +1645,20 @@ textarea {
 
   .intro,
   .split,
+  .home-services-intro,
+  .home-proof,
   .contact,
   .footer,
   .page-grid {
     grid-template-columns: 1fr;
+  }
+
+  .home-services-intro {
+    align-items: start;
+  }
+
+  .home-proof-media {
+    min-height: clamp(360px, 64vw, 520px);
   }
 
   .contact-copy h2,
@@ -1688,6 +1802,19 @@ textarea {
   .process-grid,
   .feature-card-grid {
     grid-template-columns: 1fr;
+  }
+
+  .home-services-intro {
+    gap: 24px;
+    padding-bottom: 34px;
+  }
+
+  .home-proof-media {
+    min-height: 320px;
+  }
+
+  .home-proof-copy {
+    padding: 46px 24px 54px;
   }
 
   .service-card {
