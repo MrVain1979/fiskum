@@ -13,6 +13,17 @@ function initInteractions() {
     if (event.target instanceof HTMLAnchorElement) setMenu(false);
   });
 
+  const contactForm = document.querySelector(".contact-form");
+  const query = new URLSearchParams(window.location.search);
+  if (contactForm && query.get("sendt") === "1") {
+    const status = document.createElement("p");
+    status.className = "form-status";
+    status.setAttribute("role", "status");
+    status.textContent = "Takk! Forespørselen er sendt. Vi tar kontakt så snart vi kan.";
+    contactForm.prepend(status);
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const heroSlides = Array.from(document.querySelectorAll(".hero-slide"));
   const heroDots = Array.from(document.querySelectorAll(".hero-dots button"));

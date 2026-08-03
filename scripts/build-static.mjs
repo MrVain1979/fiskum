@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const productionOrigin = "https://www.fiskum-sveis.no";
 const distMirrors = ["dist", "apps/studio/dist"];
 const mirrors = ["", "apps/studio", ...distMirrors];
 const generatedRoots = [
@@ -385,7 +386,7 @@ function renderPage(data, path) {
 function renderContactForm(settings) {
   const email = settings?.contactEmail || "";
   const action = email ? `https://formsubmit.co/${email}` : "";
-  return `<section class="contact"><div class="contact-copy"><p class="eyebrow">Kontakt oss</p><h2>Send oss en forespørsel</h2><p>Har du spørsmål, er du alltid velkommen til å ta kontakt med oss.</p></div><form class="contact-form" action="${escapeHtml(action)}" method="POST" aria-label="Kontaktskjema"><input type="hidden" name="_subject" value="Ny forespørsel fra fiskum-sveis.no"><input type="hidden" name="_template" value="table"><input type="hidden" name="_captcha" value="false"><input type="hidden" name="_next" value="/kontakt-oss/"><input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" class="honeypot"><label>Navn<input type="text" name="name" autocomplete="name" placeholder="Ditt navn" required></label><label>E-post<input type="email" name="email" autocomplete="email" placeholder="din@epost.no" required></label><label>Telefon<input type="tel" name="phone" autocomplete="tel" placeholder="Telefonnummer"></label><label>Hva gjelder det?<select name="topic" required><option>Stålbygg</option><option>Vegger, fasade og tak</option><option>Broer</option><option>Trapper og rekkverk</option><option>Kranutleie</option><option>Annet</option></select></label><label>Beskjed<textarea name="message" rows="5" placeholder="Skriv kort hva du trenger hjelp med" required></textarea></label><button class="button primary" type="submit">Send forespørsel</button></form></section>`;
+  return `<section class="contact"><div class="contact-copy"><p class="eyebrow">Kontakt oss</p><h2>Send oss en forespørsel</h2><p>Har du spørsmål, er du alltid velkommen til å ta kontakt med oss.</p></div><form class="contact-form" action="${escapeHtml(action)}" method="POST" aria-label="Kontaktskjema"><input type="hidden" name="_subject" value="Ny forespørsel fra fiskum-sveis.no"><input type="hidden" name="_template" value="table"><input type="hidden" name="_captcha" value="false"><input type="hidden" name="_next" value="${productionOrigin}/kontakt-oss/?sendt=1"><input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" class="honeypot"><label>Navn<input type="text" name="name" autocomplete="name" placeholder="Ditt navn" required></label><label>E-post<input type="email" name="email" autocomplete="email" placeholder="din@epost.no" required></label><label>Telefon<input type="tel" name="phone" autocomplete="tel" placeholder="Telefonnummer"></label><label>Hva gjelder det?<select name="topic" required><option>Stålbygg</option><option>Vegger, fasade og tak</option><option>Broer</option><option>Trapper og rekkverk</option><option>Kranutleie</option><option>Annet</option></select></label><label>Beskjed<textarea name="message" rows="5" placeholder="Skriv kort hva du trenger hjelp med" required></textarea></label><button class="button primary" type="submit">Send forespørsel</button></form></section>`;
 }
 
 export function documentBody(data, path) {
@@ -398,6 +399,7 @@ export function pageHtml(data, path) {
   const title = pageTitle(doc) || data.settings?.siteTitle || "";
   const description = pageLead(doc) || data.settings?.siteDescription || "";
   const seoImage = imageUrl(doc?.seoImage || doc?.mainImage || doc?.image || doc?.heroImages?.[0] || doc?.gallery?.[0]);
+  const canonicalUrl = new URL(path, productionOrigin).toString();
   const body = documentBody(data, path);
   return `<!doctype html>
 <html lang="nb">
@@ -408,9 +410,11 @@ export function pageHtml(data, path) {
     <meta name="description" content="${escapeHtml(description)}" />
     <meta property="og:title" content="${escapeHtml(doc?.ogTitle || doc?.seoTitle || title)}" />
     <meta property="og:description" content="${escapeHtml(doc?.ogDescription || doc?.seoDescription || description)}" />
+    <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
     ${seoImage ? `<meta property="og:image" content="${escapeHtml(seoImage)}" />` : ""}
     ${seoImage ? `<meta name="twitter:image" content="${escapeHtml(seoImage)}" />` : ""}
     <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
     <link rel="stylesheet" href="/styles.css" />
     <script src="/script.js" defer></script>
   </head>

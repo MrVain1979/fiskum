@@ -1,6 +1,16 @@
 const nextConfig = {
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "fiskum-studio.vercel.app" }],
+        destination: "https://www.fiskum-sveis.no/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

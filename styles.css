@@ -770,6 +770,21 @@ textarea {
   resize: vertical;
 }
 
+select option {
+  background: #fff;
+  color: var(--ink);
+}
+
+.form-status {
+  margin: 0 0 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(232, 188, 65, 0.5);
+  border-radius: var(--radius);
+  background: rgba(232, 188, 65, 0.14);
+  color: #fff;
+  font-weight: 750;
+}
+
 .honeypot {
   position: absolute;
   left: -9999px;
