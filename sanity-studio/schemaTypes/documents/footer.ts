@@ -95,6 +95,27 @@ export const footer = defineType({
       description: "Subtitle that sits beneath the logo in the footer",
     }),
     defineField({
+      name: "copyrightText",
+      type: "string",
+      title: "Copyright-tekst",
+      description: "Teksten som vises nederst i footeren.",
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: "developerCreditText",
+      type: "string",
+      title: "Krediteringstekst",
+      description: "For eksempel Utviklet av NextCode.",
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: "developerCreditUrl",
+      type: "url",
+      title: "Krediteringslenke",
+      description: "Nettsiden krediteringsteksten skal lenke til.",
+      validation: (rule) => rule.required().uri({ scheme: ["http", "https"] }),
+    }),
+    defineField({
       name: "columns",
       type: "array",
       title: "Columns",

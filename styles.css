@@ -950,10 +950,32 @@ select option {
   text-decoration: none;
 }
 
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px 18px;
+  text-align: right;
+}
+
 .copyright {
   margin: 0;
   color: rgba(255, 255, 255, 0.72);
   font-size: 0.9rem;
+}
+
+.developer-credit {
+  color: rgba(255, 255, 255, 0.84) !important;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.developer-credit:hover,
+.developer-credit:focus-visible {
+  color: var(--gold) !important;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .page-hero {

@@ -334,7 +334,13 @@ function renderFooter(settings, footer, navbar) {
   const links = flattenNav(navbar);
   const phoneHref = (settings?.phone || "").replaceAll(" ", "");
   const logo = renderImage(settings?.logo || { url: settings?.logoUrl }, settings?.companyName || "");
-  return `<footer class="footer"><div class="footer-inner"><div class="footer-brand">${logo}${footer?.subtitle ? `<h2>${escapeHtml(footer.subtitle)}</h2>` : ""}</div><div class="footer-columns"><div><strong>Telefon</strong>${settings?.phone ? `<a href="tel:${escapeHtml(phoneHref)}">${escapeHtml(settings.phone)}</a>` : ""}</div><div><strong>E-post</strong>${settings?.contactEmail ? `<a href="mailto:${escapeHtml(settings.contactEmail)}">${escapeHtml(settings.contactEmail)}</a>` : ""}</div><address><strong>Adresse</strong>${escapeHtml(settings?.address?.street || "")}<br>${escapeHtml([settings?.address?.postalCode, settings?.address?.city].filter(Boolean).join(" "))}<br>${escapeHtml(settings?.address?.country || "")}</address><div><strong>Følg oss</strong>${settings?.socialLinks?.facebook ? `<a class="social-link" href="${escapeHtml(settings.socialLinks.facebook)}" aria-label="Facebook">f</a>` : ""}</div></div><div class="footer-bottom"><nav aria-label="Bunnmeny">${links.map((item) => `<a href="${escapeHtml(resolveLink(item.url))}">${escapeHtml(item.name)}</a>`).join("")}</nav><p class="copyright">© ${new Date().getFullYear()} ${escapeHtml(settings?.companyName || "")}</p></div></div></footer>`;
+  const legal = [
+    footer?.copyrightText ? `<p class="copyright">${escapeHtml(footer.copyrightText)}</p>` : "",
+    footer?.developerCreditText && footer?.developerCreditUrl
+      ? `<a class="developer-credit" href="${escapeHtml(footer.developerCreditUrl)}" rel="noopener">${escapeHtml(footer.developerCreditText)}</a>`
+      : "",
+  ].filter(Boolean).join("");
+  return `<footer class="footer"><div class="footer-inner"><div class="footer-brand">${logo}${footer?.subtitle ? `<h2>${escapeHtml(footer.subtitle)}</h2>` : ""}</div><div class="footer-columns"><div><strong>Telefon</strong>${settings?.phone ? `<a href="tel:${escapeHtml(phoneHref)}">${escapeHtml(settings.phone)}</a>` : ""}</div><div><strong>E-post</strong>${settings?.contactEmail ? `<a href="mailto:${escapeHtml(settings.contactEmail)}">${escapeHtml(settings.contactEmail)}</a>` : ""}</div><address><strong>Adresse</strong>${escapeHtml(settings?.address?.street || "")}<br>${escapeHtml([settings?.address?.postalCode, settings?.address?.city].filter(Boolean).join(" "))}<br>${escapeHtml(settings?.address?.country || "")}</address><div><strong>Følg oss</strong>${settings?.socialLinks?.facebook ? `<a class="social-link" href="${escapeHtml(settings.socialLinks.facebook)}" aria-label="Facebook">f</a>` : ""}</div></div><div class="footer-bottom"><nav aria-label="Bunnmeny">${links.map((item) => `<a href="${escapeHtml(resolveLink(item.url))}">${escapeHtml(item.name)}</a>`).join("")}</nav>${legal ? `<div class="footer-legal">${legal}</div>` : ""}</div></div></footer>`;
 }
 
 function renderHome(data) {
@@ -454,7 +460,7 @@ export function contentQuery() {
   return `{
     "settings": *[_type == "settings"][0]{companyName, siteTitle, siteDescription, phone, contactEmail, address, socialLinks, logo{${imageProjection}}, "logoUrl": logo.asset->url},
     "navbar": *[_type == "navbar"][0]{columns[]{_type, name, title, url{${linkProjection}}, links[]{name, url{${linkProjection}}}}},
-    "footer": *[_type == "footer"][0]{subtitle, columns[]{title, links[]{name, url{${linkProjection}}}}},
+    "footer": *[_type == "footer"][0]{subtitle, copyrightText, developerCreditText, developerCreditUrl, columns[]{title, links[]{name, url{${linkProjection}}}}},
     "homePage": *[_type == "homePage"][0]{${sharedFields}},
     "pages": *[_type == "page"] | order(_createdAt asc){${sharedFields}},
     "services": *[_type == "service"] | order(_createdAt asc){${sharedFields}, "image": gallery[0]{${imageProjection}}},

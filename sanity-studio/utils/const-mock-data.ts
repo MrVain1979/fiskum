@@ -534,6 +534,9 @@ export function generateMockFooterData({
     _createdAt: "2025-01-17T11:55:54Z",
     label: "Footer",
     columns,
+    copyrightText: "© 2026 Fiskum Plate og Sveiseverksted AS",
+    developerCreditText: "Utviklet av NextCode",
+    developerCreditUrl: "https://www.nextcode.no/",
     subtitle:
       "Powered by Next.js and Sanity, crafted in a seamless monorepo architecture.",
   };
