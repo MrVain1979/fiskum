@@ -221,7 +221,9 @@ function renderBuilder(blocks = [], options = {}) {
           return `<section class="section cms-block home-proof"><div class="home-proof-media">${imageUrl(image) ? renderImage(image, image.alt || block.title || "", ' loading="lazy" decoding="async"') : ""}</div><div class="home-proof-copy">${block.eyebrow || block.badge ? `<p class="eyebrow">${escapeHtml(block.eyebrow || block.badge)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}${renderButtons(block.buttons)}</div></section>`;
         }
 
-        return `<section class="section cms-block">${block.eyebrow || block.badge ? `<p class="eyebrow">${escapeHtml(block.eyebrow || block.badge)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}${renderButtons(block.buttons)}</section>`;
+        const eyebrow = block.eyebrow || block.badge || "";
+        const repeatsPageTitle = eyebrow.trim().toLocaleLowerCase("nb") === String(options.pageTitle || "").trim().toLocaleLowerCase("nb");
+        return `<section class="section cms-block">${eyebrow && !repeatsPageTitle ? `<p class="eyebrow">${escapeHtml(eyebrow)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}${renderButtons(block.buttons)}</section>`;
       }
       if (block._type === "cta") {
         const currentCtaIndex = ctaIndex++;
@@ -376,7 +378,7 @@ function renderPage(data, path) {
   const doc = data.document;
   const title = pageTitle(doc);
   const lead = pageLead(doc);
-  const body = [renderBlocks(doc.body), renderBlocks(doc.richText), renderBuilder(doc.pageBuilder), renderGallery(doc.gallery), renderPdfs(doc.pdfFiles), path === "/kontakt-oss/" ? renderContactForm(data.settings) : ""].join("");
+  const body = [renderBlocks(doc.body), renderBlocks(doc.richText), renderBuilder(doc.pageBuilder, { pageTitle: title }), renderGallery(doc.gallery), renderPdfs(doc.pdfFiles), path === "/kontakt-oss/" ? renderContactForm(data.settings) : ""].join("");
   if (path === "/kontakt-oss/") {
     return `<main><section class="page-hero">${breadcrumbHtml(doc, path)}<p class="eyebrow">${escapeHtml(data.settings?.companyName || "")}</p><h1>${escapeHtml(title)}</h1>${lead ? `<p>${escapeHtml(lead)}</p>` : ""}</section><section class="page-content contact-page"><div class="content-stack">${body}</div></section></main>`;
   }
@@ -645,17 +647,6 @@ export async function fetchPreviewContent(fetchOptions = {}) {
 }
 
 export function allDocuments(data) {
-  return [
-    data.homePage,
-    ...(data.pages || []),
-    ...(data.services || []),
-    ...(data.references || []),
-    ...(data.newsPosts || []),
-  ].filter(Boolean);
-}
-
-async function build() {
-  const data = await fetchContent();
   const documents = [
     data.homePage,
     ...(data.pages || []),
@@ -663,6 +654,36 @@ async function build() {
     ...(data.references || []),
     ...(data.newsPosts || []),
   ].filter(Boolean);
+
+  const byRoute = new Map();
+  for (const document of documents) {
+    const route = routeFor(document);
+    if (!route || !byRoute.has(route)) {
+      byRoute.set(route || document._id, document);
+      continue;
+    }
+
+    const primary = byRoute.get(route);
+    byRoute.set(route, {
+      ...document,
+      ...primary,
+      description: primary.description || document.description,
+      heroLead: primary.heroLead || document.heroLead,
+      summary: primary.summary || document.summary,
+      seoTitle: primary.seoTitle || document.seoTitle,
+      seoDescription: primary.seoDescription || document.seoDescription,
+      seoImage: primary.seoImage || document.seoImage,
+      ogTitle: primary.ogTitle || document.ogTitle,
+      ogDescription: primary.ogDescription || document.ogDescription,
+    });
+  }
+
+  return [...byRoute.values()];
+}
+
+async function build() {
+  const data = await fetchContent();
+  const documents = allDocuments(data);
 
   const issues = validateContent(data, documents);
   await cleanGeneratedRoutes();
