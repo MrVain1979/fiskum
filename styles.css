@@ -785,6 +785,16 @@ select option {
   font-weight: 750;
 }
 
+.form-status.is-error {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.contact-form button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
 .honeypot {
   position: absolute;
   left: -9999px;
