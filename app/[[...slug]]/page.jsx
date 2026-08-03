@@ -13,6 +13,7 @@ import {
 
 export const dynamic = "force-static";
 export const dynamicParams = true;
+const productionOrigin = "https://www.fiskum-sveis.no";
 
 function normalizePath(value = "") {
   if (!value || value === "/") return "/";
@@ -97,9 +98,13 @@ export async function generateMetadata({ params }) {
   return {
     title: title ? `${title} - ${data.settings?.companyName || ""}` : "",
     description,
+    alternates: {
+      canonical: new URL(path, productionOrigin).toString(),
+    },
     openGraph: {
       title: document?.ogTitle || document?.seoTitle || title,
       description: document?.ogDescription || document?.seoDescription || description,
+      url: new URL(path, productionOrigin).toString(),
       images: image ? [image] : [],
     },
     twitter: {
