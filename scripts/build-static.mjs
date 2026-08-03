@@ -164,7 +164,11 @@ function renderImageCard(card) {
   const href = resolveLink(card.url);
   if (!href) return "";
   const image = imageUrl(card.image) ? renderImage(card.image, card.title || "", ' loading="lazy" decoding="async"') : "";
-  return `<a class="page-card" href="${escapeHtml(href)}">${image}<h3>${escapeHtml(card.title || "")}</h3><p>${escapeHtml(card.description || "")}</p></a>`;
+  return `<a class="page-card" href="${escapeHtml(href)}">${image}<h3>${escapeHtml(card.title || "")}</h3><p>${escapeHtml(card.description || "")}</p>${renderCardLinkLabel()}</a>`;
+}
+
+function renderCardLinkLabel(label = "Les mer") {
+  return `<span class="card-link-label">${escapeHtml(label)}<span aria-hidden="true">&rarr;</span></span>`;
 }
 
 function renderFeatureCardMarker(card, index) {
@@ -192,7 +196,7 @@ function serviceIconSvg(service) {
 }
 
 function renderServiceCard(service) {
-  return `<a class="service-card" href="${escapeHtml(normalizePath(service.slug))}"><span class="service-icon" aria-hidden="true">${serviceIconSvg(service)}</span><h3>${escapeHtml(pageTitle(service))}</h3><p>${escapeHtml(service.summary || "")}</p></a>`;
+  return `<a class="service-card" href="${escapeHtml(normalizePath(service.slug))}"><span class="service-icon" aria-hidden="true">${serviceIconSvg(service)}</span><h3>${escapeHtml(pageTitle(service))}</h3><p>${escapeHtml(service.summary || "")}</p>${renderCardLinkLabel()}</a>`;
 }
 
 function renderBuilder(blocks = [], options = {}) {
@@ -340,7 +344,7 @@ function renderHome(data) {
 }
 
 function renderNewsCard(post) {
-  return `<a class="news-card" href="${escapeHtml(newsHref(post))}">${imageUrl(post.image) ? renderImage(post.image, pageTitle(post), ' loading="lazy" decoding="async"') : ""}<div><p>${escapeHtml(formatDate(post.publishedAt))}</p><h3>${escapeHtml(pageTitle(post))}</h3></div></a>`;
+  return `<a class="news-card" href="${escapeHtml(newsHref(post))}">${imageUrl(post.image) ? renderImage(post.image, pageTitle(post), ' loading="lazy" decoding="async"') : ""}<div><p>${escapeHtml(formatDate(post.publishedAt))}</p><h3>${escapeHtml(pageTitle(post))}</h3>${renderCardLinkLabel()}</div></a>`;
 }
 
 function renderSidePanel(data, path) {
@@ -356,13 +360,13 @@ function renderSidePanel(data, path) {
 
 function renderContextList(data, path) {
   if (path === "/tjenester/") {
-    return `<div class="page-cards">${(data.services || []).map((service) => `<a class="page-card" href="${escapeHtml(normalizePath(service.slug))}"><h3>${escapeHtml(pageTitle(service))}</h3><p>${escapeHtml(service.summary || "")}</p></a>`).join("")}</div>`;
+    return `<div class="page-cards">${(data.services || []).map((service) => `<a class="page-card" href="${escapeHtml(normalizePath(service.slug))}"><h3>${escapeHtml(pageTitle(service))}</h3><p>${escapeHtml(service.summary || "")}</p>${renderCardLinkLabel()}</a>`).join("")}</div>`;
   }
   if (path === "/referanser/") {
-    return `<div class="reference-list">${(data.references || []).map((reference) => `<a class="reference-card" href="/referanser/${escapeHtml(String(reference.slug || "").replace(/^\/+|\/+$/g, ""))}/">${imageUrl(reference.image) ? renderImage(reference.image, pageTitle(reference), ' loading="lazy" decoding="async"') : ""}<span>Referanse</span><h3>${escapeHtml(pageTitle(reference))}</h3><p>${escapeHtml(reference.summary || "")}</p></a>`).join("")}</div>`;
+    return `<div class="reference-list">${(data.references || []).map((reference) => `<a class="reference-card" href="/referanser/${escapeHtml(String(reference.slug || "").replace(/^\/+|\/+$/g, ""))}/">${imageUrl(reference.image) ? renderImage(reference.image, pageTitle(reference), ' loading="lazy" decoding="async"') : ""}<span>Referanse</span><h3>${escapeHtml(pageTitle(reference))}</h3><p>${escapeHtml(reference.summary || "")}</p>${renderCardLinkLabel()}</a>`).join("")}</div>`;
   }
   if (path === "/aktuelt/" || path === "/category/aktuelt/") {
-    return `<div class="news-list">${(data.newsPosts || []).map((post) => `<a class="news-list-item" href="${escapeHtml(newsHref(post))}"><span>${escapeHtml(formatDate(post.publishedAt))}</span><h2>${escapeHtml(pageTitle(post))}</h2><p>${escapeHtml(post.excerpt || "")}</p></a>`).join("")}</div>`;
+    return `<div class="news-list">${(data.newsPosts || []).map((post) => `<a class="news-list-item" href="${escapeHtml(newsHref(post))}"><span>${escapeHtml(formatDate(post.publishedAt))}</span><h2>${escapeHtml(pageTitle(post))}</h2><p>${escapeHtml(post.excerpt || "")}</p>${renderCardLinkLabel()}</a>`).join("")}</div>`;
   }
   return "";
 }
