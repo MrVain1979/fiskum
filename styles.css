@@ -1004,6 +1004,12 @@ select option {
   gap: 22px;
 }
 
+.page-grid .content-stack > .section {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .content-stack p,
 .content-stack li {
   color: var(--muted);
