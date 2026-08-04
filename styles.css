@@ -722,7 +722,13 @@ cite {
 }
 
 .contact-page {
-  width: min(1180px, calc(100% - (var(--gutter) * 2)));
+  width: min(var(--max), calc(100% - (var(--gutter) * 2)));
+}
+
+.contact-page .content-stack > .section {
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .contact-copy {
