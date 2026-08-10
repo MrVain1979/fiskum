@@ -2,6 +2,7 @@ import { DocumentIcon } from "@sanity/icons";
 import { defineField, defineType } from "sanity";
 
 import { PathnameFieldComponent } from "../../components/slug-field-component";
+import { WorkshopGalleryInput } from "../../components/workshop-gallery-input";
 import { GROUP, GROUPS } from "../../utils/constant";
 import { ogFields } from "../../utils/og-fields";
 import { seoFields } from "../../utils/seo-fields";
@@ -101,6 +102,9 @@ export const page = defineType({
       type: "array",
       of: [{ type: "imageWithAlt" }],
       group: GROUP.MAIN_CONTENT,
+      components: {
+        input: WorkshopGalleryInput,
+      },
     }),
     defineField({
       name: "pdfFiles",
