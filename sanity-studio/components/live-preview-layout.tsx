@@ -1,7 +1,7 @@
 import { CollapseIcon, ExpandIcon } from "@sanity/icons";
 import { Box, Button, Card, Flex, Stack, Text, Tooltip } from "@sanity/ui";
 import type { CSSProperties } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useEditState, type SanityDocument } from "sanity";
 import type { DocumentLayoutProps } from "sanity";
 
@@ -17,6 +17,98 @@ const previewTypes = new Set([
 const studioEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {};
 const sanityProjectId = studioEnv.SANITY_STUDIO_PROJECT_ID;
 const sanityDataset = studioEnv.SANITY_STUDIO_DATASET;
+const previewUpdateDelay = 600;
+
+const preservedAttributes = new Set(["class", "open", "aria-expanded"]);
+
+function sameNodeType(current: Node, next: Node) {
+  if (current.nodeType !== next.nodeType) return false;
+  if (current.nodeType !== Node.ELEMENT_NODE) return true;
+
+  const currentElement = current as Element;
+  const nextElement = next as Element;
+  if (currentElement.tagName !== nextElement.tagName) return false;
+
+  const currentKey = currentElement.id || currentElement.getAttribute("data-preview-key");
+  const nextKey = nextElement.id || nextElement.getAttribute("data-preview-key");
+  return !currentKey || !nextKey || currentKey === nextKey;
+}
+
+function syncAttributes(current: Element, next: Element) {
+  for (const attribute of Array.from(current.attributes)) {
+    if (preservedAttributes.has(attribute.name)) continue;
+    if (attribute.name === "style" && current.tagName !== "IMG") continue;
+    if (!next.hasAttribute(attribute.name)) current.removeAttribute(attribute.name);
+  }
+
+  for (const attribute of Array.from(next.attributes)) {
+    if (preservedAttributes.has(attribute.name)) continue;
+    if (attribute.name === "style" && current.tagName !== "IMG") continue;
+    if (current.getAttribute(attribute.name) !== attribute.value) {
+      current.setAttribute(attribute.name, attribute.value);
+    }
+  }
+}
+
+function morphPreviewNode(current: Node, next: Node) {
+  if (!sameNodeType(current, next)) {
+    current.replaceWith(next.cloneNode(true));
+    return;
+  }
+
+  if (current.nodeType === Node.TEXT_NODE || current.nodeType === Node.COMMENT_NODE) {
+    if (current.nodeValue !== next.nodeValue) current.nodeValue = next.nodeValue;
+    return;
+  }
+
+  if (current.nodeType !== Node.ELEMENT_NODE) return;
+
+  const currentElement = current as Element;
+  const nextElement = next as Element;
+  if (currentElement.tagName === "SCRIPT") return;
+
+  syncAttributes(currentElement, nextElement);
+
+  let index = 0;
+  while (index < nextElement.childNodes.length || index < currentElement.childNodes.length) {
+    const currentChild = currentElement.childNodes[index];
+    const nextChild = nextElement.childNodes[index];
+
+    if (!nextChild) {
+      currentChild.remove();
+      continue;
+    }
+
+    if (!currentChild) {
+      currentElement.append(nextChild.cloneNode(true));
+      index += 1;
+      continue;
+    }
+
+    if (sameNodeType(currentChild, nextChild)) {
+      morphPreviewNode(currentChild, nextChild);
+      index += 1;
+      continue;
+    }
+
+    const matchingChild = Array.from(currentElement.childNodes)
+      .slice(index + 1)
+      .find((candidate) => sameNodeType(candidate, nextChild));
+
+    if (matchingChild) {
+      currentElement.insertBefore(matchingChild, currentChild);
+      morphPreviewNode(matchingChild, nextChild);
+    } else {
+      currentElement.insertBefore(nextChild.cloneNode(true), currentChild);
+    }
+    index += 1;
+  }
+}
+
+function morphPreviewDocument(current: Document, html: string) {
+  const next = new DOMParser().parseFromString(html, "text/html");
+  morphPreviewNode(current.documentElement, next.documentElement);
+}
 
 type PortableTextBlock = {
   _type?: string;
@@ -584,8 +676,12 @@ const iframeStyle: CSSProperties = {
 
 export function LivePreviewLayout(props: DocumentLayoutProps) {
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
+  const [frameEpoch, setFrameEpoch] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const requestIdRef = useRef(0);
   const state = useEditState(props.documentId, props.documentType);
   const document = state.draft ?? state.published;
+  const version = useMemo(() => documentVersion(document), [document]);
   const route = useMemo(
     () => getRoute(document, props.documentType),
     [document, props.documentType],
@@ -594,9 +690,51 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
     const url = new URL(previewPath(route), window.location.origin);
     url.searchParams.set("id", props.documentId);
     url.searchParams.set("type", props.documentType);
-    url.searchParams.set("v", documentVersion(document));
     return url.toString();
-  }, [document, props.documentId, props.documentType, route]);
+  }, [props.documentId, props.documentType, route]);
+
+  useEffect(() => {
+    if (!state.ready || !document || !previewTypes.has(props.documentType)) return;
+
+    const controller = new AbortController();
+    const requestId = ++requestIdRef.current;
+    const timeout = window.setTimeout(async () => {
+      try {
+        const url = new URL(previewSrc);
+        url.searchParams.set("v", version);
+        const response = await fetch(url, {
+          cache: "no-store",
+          credentials: "same-origin",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Preview request failed: ${response.status}`);
+        }
+
+        const html = await response.text();
+        if (requestId !== requestIdRef.current) return;
+
+        const frame = iframeRef.current;
+        const frameDocument = frame?.contentDocument;
+        const frameWindow = frame?.contentWindow;
+        if (!frameDocument?.documentElement || !frameWindow) return;
+
+        const scrollX = frameWindow.scrollX;
+        const scrollY = frameWindow.scrollY;
+        morphPreviewDocument(frameDocument, html);
+        frameWindow.scrollTo(scrollX, scrollY);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.warn("Could not update live preview", error);
+      }
+    }, previewUpdateDelay);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [document, frameEpoch, previewSrc, props.documentType, state.ready, version]);
 
   if (!previewTypes.has(props.documentType)) {
     return props.renderDefault(props);
@@ -651,7 +789,13 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
           </Flex>
         </Card>
         <Box flex={1} style={iframeWrapStyle}>
-          <iframe title="Live preview" src={previewSrc} style={iframeStyle} />
+          <iframe
+            ref={iframeRef}
+            title="Live preview"
+            src={previewSrc}
+            style={iframeStyle}
+            onLoad={() => setFrameEpoch((epoch) => epoch + 1)}
+          />
         </Box>
       </div>
     </div>
