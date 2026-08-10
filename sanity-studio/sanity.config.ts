@@ -7,7 +7,7 @@ import {
   unsplashImageAsset,
 } from "sanity-plugin-asset-source-unsplash";
 import { iconPicker } from "sanity-plugin-icon-picker";
-import { media, mediaAssetSource } from "sanity-plugin-media";
+import { media } from "sanity-plugin-media";
 
 import { LivePreviewLayout } from "./components/live-preview-layout";
 import { Logo } from "./components/logo";
@@ -36,9 +36,6 @@ export default defineConfig({
   icon: Logo,
   dataset,
   basePath: "/studio",
-  mediaLibrary: {
-    enabled: true,
-  },
   plugins: [
     assist(),
     structureTool({
@@ -50,12 +47,6 @@ export default defineConfig({
     unsplashImageAsset(),
   ],
 
-  form: {
-    image: {
-      assetSources: (sources) =>
-        sources.filter((source) => source.name !== "sanity-default"),
-    },
-  },
   document: {
     components: {
       unstable_layout: LivePreviewLayout,
