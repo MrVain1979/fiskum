@@ -228,18 +228,18 @@ function serviceIconSvg(service) {
   const slug = normalizePath(service?.slug);
   const icons = {
     "/stalbygg/":
-      '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="30" height="30" stroke="currentColor" stroke-width="2.5"/><path d="M9 24h30M24 9v30" stroke="currentColor" stroke-width="2.5"/></svg>',
+      '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M7 39h34"/><path d="M11 39V18l13-8 13 8v21"/><path d="M16 39V25h16v14"/><path d="M16 30h16"/><path d="m11 18 13 7 13-7"/></svg>',
     "/vegger/":
-      '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 23 24 11l16 12" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M14 22v17h20V22" stroke="currentColor" stroke-width="2.5"/><path d="M18 28h12M18 33h12" stroke="currentColor" stroke-width="2.5"/></svg>',
+      '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M7 39h34"/><path d="M11 39V18l13-8 13 8v21"/><path d="M11 21h26"/><path d="M17 21v18M24 21v18M31 21v18"/><path d="M11 28h26"/></svg>',
     "/broer/":
-      '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 30c4-9 10-14 17-14s13 5 17 14" stroke="currentColor" stroke-width="2.5"/><path d="M8 33h32M13 33v5M20 33v5M28 33v5M35 33v5" stroke="currentColor" stroke-width="2.5"/></svg>',
+      '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M7 39h34"/><path d="M8 26h32"/><path d="M11 26c3-9 7-13 13-13s10 4 13 13"/><path d="M13 26v13M35 26v13"/><path d="M18 26v6M24 26v6M30 26v6"/></svg>',
     "/trapper/":
-      '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 36h8v-6h8v-6h8v-6" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M13 17 31 35" stroke="currentColor" stroke-width="2.5"/></svg>',
+      '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M7 39h34"/><path d="M10 36h7v-6h7v-6h7v-6h7"/><path d="m10 27 19-17h9"/><path d="M15 23v9M23 16v10M31 10v10"/></svg>',
   };
 
   return (
     icons[slug] ||
-    '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 14h28v20H10z" stroke="currentColor" stroke-width="2.5"/><path d="M10 22h28" stroke="currentColor" stroke-width="2.5"/></svg>'
+    '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M7 39h34"/><path d="M10 34V14h28v20"/><path d="M10 22h28"/></svg>'
   );
 }
 
