@@ -453,7 +453,7 @@ function renderNewsCard(post) {
 function renderSidePanel(data, path) {
   const settings = data.settings;
   const page = (data.pages || []).find((item) => normalizePath(item.slug) === path);
-  if (path === "/verksted/" && page?.sideQuote) {
+  if (page?.sideQuote) {
     const quote = page.sideQuote;
     return `<aside class="side-panel side-panel-quote"><span class="eyebrow">Kundesitat</span><blockquote>${quote.quote ? `<p>${escapeHtml(quote.quote)}</p>` : ""}${quote.author || quote.company ? `<cite>${escapeHtml([quote.author, quote.company].filter(Boolean).join(", "))}</cite>` : ""}</blockquote></aside>`;
   }
@@ -546,11 +546,9 @@ function renderPage(data, path) {
     renderBuilder(doc.pageBuilder, { pageTitle: title }),
     renderGallery(doc.gallery, galleryHeading),
     renderPdfs(doc.pdfFiles),
-    path === "/kontakt-oss/" ? renderContactDetails(doc, data.settings) : "",
-    path === "/kontakt-oss/" ? renderContactForm(data.settings) : "",
   ].join("");
   if (path === "/kontakt-oss/") {
-    return `<main><section class="page-hero">${breadcrumbHtml(doc, path)}<p class="eyebrow">${escapeHtml(data.settings?.companyName || "")}</p><h1>${escapeHtml(title)}</h1>${lead ? `<p>${escapeHtml(lead)}</p>` : ""}</section><section class="page-content contact-page"><div class="content-stack">${body}</div></section></main>`;
+    return `<main><section class="page-hero">${breadcrumbHtml(doc, path)}<p class="eyebrow">${escapeHtml(data.settings?.companyName || "")}</p><h1>${escapeHtml(title)}</h1>${lead ? `<p>${escapeHtml(lead)}</p>` : ""}</section><section class="page-content contact-page"><div class="page-grid contact-intro-grid"><div class="content-stack">${body}</div>${renderSidePanel(data, path)}</div>${renderContactDetails(doc, data.settings)}${renderContactForm(data.settings)}</section></main>`;
   }
   return `<main><section class="page-hero">${breadcrumbHtml(doc, path)}<p class="eyebrow">${escapeHtml(data.settings?.companyName || "")}</p><h1>${escapeHtml(title)}</h1>${lead ? `<p>${escapeHtml(lead)}</p>` : ""}</section><section class="page-content"><div class="page-grid"><div class="content-stack">${body}</div>${renderSidePanel(data, path)}</div>${renderContextList(data, path)}</section></main>`;
 }
