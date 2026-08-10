@@ -306,10 +306,10 @@ function renderBuilder(blocks = [], options = {}) {
     .join("");
 }
 
-function renderGallery(gallery = []) {
+function renderGallery(gallery = [], { eyebrow = "Galleri", title = "Bilder" } = {}) {
   const images = (gallery || []).filter((image) => imageUrl(image));
   if (!images.length) return "";
-  return `<section class="gallery-section"><div class="section-heading"><p class="eyebrow">Fra verkstedet</p><h2>Maskiner og utstyr</h2></div><div class="gallery">${images
+  return `<section class="gallery-section"><div class="section-heading"><p class="eyebrow">${escapeHtml(eyebrow)}</p><h2>${escapeHtml(title)}</h2></div><div class="gallery">${images
     .map(
       (image, index) => {
         const src = imageUrl(image);
@@ -529,11 +529,17 @@ function renderPage(data, path) {
   const doc = data.document;
   const title = pageTitle(doc);
   const lead = pageLead(doc);
+  const galleryHeading =
+    doc._type === "projectReference"
+      ? { eyebrow: "Referanse", title: "Prosjektbilder" }
+      : path === "/verksted/"
+        ? { eyebrow: "Fra verkstedet", title: "Maskiner og utstyr" }
+        : undefined;
   const body = [
     renderBlocks(doc.body),
     renderBlocks(doc.richText),
     renderBuilder(doc.pageBuilder, { pageTitle: title }),
-    renderGallery(doc.gallery),
+    renderGallery(doc.gallery, galleryHeading),
     renderPdfs(doc.pdfFiles),
     path === "/kontakt-oss/" ? renderContactDetails(doc, data.settings) : "",
     path === "/kontakt-oss/" ? renderContactForm(data.settings) : "",

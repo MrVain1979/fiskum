@@ -417,8 +417,18 @@ function renderBuilder(blocks: unknown) {
     .join("");
 }
 
-function renderDraftGallery(document: Partial<SanityDocument> | null) {
+function renderDraftGallery(
+  document: Partial<SanityDocument> | null,
+  documentType: string,
+  route: string,
+) {
   const gallery = getImageArray(document, "gallery");
+  const heading =
+    documentType === "projectReference"
+      ? { eyebrow: "Referanse", title: "Prosjektbilder" }
+      : route === "/verksted/"
+        ? { eyebrow: "Fra verkstedet", title: "Maskiner og utstyr" }
+        : { eyebrow: "Galleri", title: "Bilder" };
 
   const images = gallery
     .map((image) => ({
@@ -430,7 +440,7 @@ function renderDraftGallery(document: Partial<SanityDocument> | null) {
 
   if (!images.length) return "";
 
-  return `<section class="gallery-section"><div class="section-heading"><p class="eyebrow">Fra verkstedet</p><h2>Maskiner og utstyr</h2></div><div class="gallery">${images
+  return `<section class="gallery-section"><div class="section-heading"><p class="eyebrow">${escapeHtml(heading.eyebrow)}</p><h2>${escapeHtml(heading.title)}</h2></div><div class="gallery">${images
     .map(
       ({ image, alt, url }, index) => {
         const caption = image.caption || "";
@@ -532,7 +542,7 @@ function applyDraftToPageHtml(
     renderPortableText(getValue(document, "body")),
     renderPortableText(getValue(document, "richText")),
     renderBuilder(getValue(document, "pageBuilder")),
-    renderDraftGallery(document),
+    renderDraftGallery(document, documentType, route),
   ].join("");
 
   if (contentStack && draftBody.trim()) {
