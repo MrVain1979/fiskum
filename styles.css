@@ -1236,6 +1236,29 @@ select option {
   font-weight: 850;
 }
 
+.side-panel-quote {
+  gap: 16px;
+}
+
+.side-panel-quote blockquote {
+  padding: 0;
+  background: transparent;
+  color: var(--text);
+}
+
+.side-panel-quote blockquote p {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.side-panel-quote cite {
+  margin-top: 16px;
+  color: var(--blue);
+  font-weight: 850;
+}
+
 .page-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

@@ -452,6 +452,11 @@ function renderNewsCard(post) {
 
 function renderSidePanel(data, path) {
   const settings = data.settings;
+  const page = (data.pages || []).find((item) => normalizePath(item.slug) === path);
+  if (path === "/verksted/" && page?.sideQuote) {
+    const quote = page.sideQuote;
+    return `<aside class="side-panel side-panel-quote"><span class="eyebrow">Kundesitat</span><blockquote>${quote.quote ? `<p>${escapeHtml(quote.quote)}</p>` : ""}${quote.author || quote.company ? `<cite>${escapeHtml([quote.author, quote.company].filter(Boolean).join(", "))}</cite>` : ""}</blockquote></aside>`;
+  }
   if (path === "/tjenester/") {
     return `<aside class="side-panel"><strong>Kontakt</strong>${settings?.phone ? `<a href="tel:${escapeHtml(settings.phone.replaceAll(" ", ""))}">${escapeHtml(settings.phone)}</a>` : ""}${settings?.contactEmail ? `<a href="mailto:${escapeHtml(settings.contactEmail)}">${escapeHtml(settings.contactEmail)}</a>` : ""}</aside>`;
   }
@@ -623,6 +628,7 @@ export function contentQuery() {
     },
     contactDetails{bankName, bankAccount, organizationNumber},
     contactPeople[]{_key, name, role, phone, email},
+    sideQuote{quote, author, company},
     "pdfFiles": pdfFiles[]{title, description, "url": file.asset->url}`;
   return `{
     "settings": *[_type == "settings"][0]{companyName, siteTitle, siteDescription, phone, contactEmail, address, socialLinks, logo{${imageProjection}}, "logoUrl": logo.asset->url},

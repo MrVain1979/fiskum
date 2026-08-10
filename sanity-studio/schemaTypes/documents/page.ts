@@ -111,6 +111,34 @@ export const page = defineType({
       group: GROUP.MAIN_CONTENT,
     }),
     defineField({
+      name: "sideQuote",
+      title: "Kundesitat i sideboks",
+      description: "Sitatet som vises i den hvite boksen til høyre på Verksted-siden.",
+      type: "object",
+      group: GROUP.MAIN_CONTENT,
+      hidden: ({ document }) =>
+        (document?.slug as { current?: string } | undefined)?.current !==
+        "/verksted",
+      fields: [
+        defineField({
+          name: "quote",
+          title: "Sitat",
+          type: "text",
+          rows: 4,
+        }),
+        defineField({
+          name: "author",
+          title: "Navn",
+          type: "string",
+        }),
+        defineField({
+          name: "company",
+          title: "Firma",
+          type: "string",
+        }),
+      ],
+    }),
+    defineField({
       name: "contactDetails",
       title: "Bedriftsopplysninger",
       description: "Bank- og foretaksopplysninger som vises på kontaktsiden.",

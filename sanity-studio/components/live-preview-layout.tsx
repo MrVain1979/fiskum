@@ -451,6 +451,19 @@ function renderDraftGallery(
     .join("")}</div></section>`;
 }
 
+function renderDraftSideQuote(
+  document: Partial<SanityDocument> | null,
+  route: string,
+) {
+  if (route !== "/verksted/") return "";
+  const sideQuote = getValue(document, "sideQuote") as
+    | { quote?: string; author?: string; company?: string }
+    | undefined;
+  if (!sideQuote) return "";
+  const credit = [sideQuote.author, sideQuote.company].filter(Boolean).join(", ");
+  return `<aside class="side-panel side-panel-quote"><span class="eyebrow">Kundesitat</span><blockquote>${sideQuote.quote ? `<p>${escapeHtml(sideQuote.quote)}</p>` : ""}${credit ? `<cite>${escapeHtml(credit)}</cite>` : ""}</blockquote></aside>`;
+}
+
 function renderHeroMedia(document: Partial<SanityDocument> | null) {
   const images = getImageArray(document, "heroImages").filter((image) => imageUrl(image));
   if (!images.length) return "";
@@ -554,6 +567,10 @@ function applyDraftToPageHtml(
     article.innerHTML = draftBody;
     main.append(article);
   }
+
+  const draftSideQuote = renderDraftSideQuote(document, route);
+  const sidePanel = doc.querySelector(".side-panel");
+  if (draftSideQuote && sidePanel) sidePanel.outerHTML = draftSideQuote;
 
   const notice = doc.createElement("div");
   notice.textContent =
