@@ -247,6 +247,10 @@ function initInteractions() {
       opener?.focus();
     });
     lightbox.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeLightbox();
+      }
       if (event.key === "ArrowLeft") showPrevious();
       if (event.key === "ArrowRight") showNext();
     });
