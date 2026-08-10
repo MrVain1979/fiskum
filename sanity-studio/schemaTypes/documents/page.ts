@@ -101,6 +101,80 @@ export const page = defineType({
       of: [{ type: "pdfFile" }],
       group: GROUP.MAIN_CONTENT,
     }),
+    defineField({
+      name: "contactDetails",
+      title: "Bedriftsopplysninger",
+      description: "Bank- og foretaksopplysninger som vises på kontaktsiden.",
+      type: "object",
+      group: GROUP.MAIN_CONTENT,
+      hidden: ({ document }) =>
+        (document?.slug as { current?: string } | undefined)?.current !==
+        "/kontakt-oss",
+      fields: [
+        defineField({
+          name: "bankName",
+          title: "Bankforbindelse",
+          type: "string",
+        }),
+        defineField({
+          name: "bankAccount",
+          title: "Bankgiro",
+          type: "string",
+        }),
+        defineField({
+          name: "organizationNumber",
+          title: "Foretaksnummer",
+          type: "string",
+        }),
+      ],
+    }),
+    defineField({
+      name: "contactPeople",
+      title: "Kontaktpersoner",
+      description: "Personene vises i samme rekkefølge som de ligger her.",
+      type: "array",
+      group: GROUP.MAIN_CONTENT,
+      hidden: ({ document }) =>
+        (document?.slug as { current?: string } | undefined)?.current !==
+        "/kontakt-oss",
+      of: [
+        defineField({
+          name: "contactPerson",
+          title: "Kontaktperson",
+          type: "object",
+          fields: [
+            defineField({
+              name: "name",
+              title: "Navn",
+              type: "string",
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: "role",
+              title: "Rolle",
+              type: "string",
+            }),
+            defineField({
+              name: "phone",
+              title: "Telefon",
+              type: "string",
+            }),
+            defineField({
+              name: "email",
+              title: "E-post",
+              type: "string",
+              validation: (Rule) => Rule.email(),
+            }),
+          ],
+          preview: {
+            select: {
+              title: "name",
+              subtitle: "role",
+            },
+          },
+        }),
+      ],
+    }),
     pageBuilderField,
     ...seoFields.filter((field) => field.name !== "seoHideFromLists"),
     ...ogFields,
