@@ -432,8 +432,11 @@ function renderDraftGallery(document: Partial<SanityDocument> | null) {
 
   return `<section class="gallery-section"><div class="section-heading"><p class="eyebrow">Fra verkstedet</p><h2>Maskiner og utstyr</h2></div><div class="gallery">${images
     .map(
-      ({ image, alt }) =>
-        `<figure>${renderImage(image, alt, ' loading="lazy" decoding="async"')}${image.caption ? `<figcaption>${escapeHtml(image.caption)}</figcaption>` : ""}</figure>`,
+      ({ image, alt, url }, index) => {
+        const caption = image.caption || "";
+        const label = `Vis bilde ${index + 1} av ${images.length}${alt ? `: ${alt}` : ""}`;
+        return `<figure><button class="gallery-item" type="button" data-gallery-item data-gallery-src="${escapeHtml(url)}" data-gallery-alt="${escapeHtml(alt)}" data-gallery-caption="${escapeHtml(caption)}" aria-label="${escapeHtml(label)}">${renderImage(image, alt, ' loading="lazy" decoding="async"')}<span class="gallery-zoom-icon" aria-hidden="true"></span></button>${caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : ""}</figure>`;
+      },
     )
     .join("")}</div></section>`;
 }
