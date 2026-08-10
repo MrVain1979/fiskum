@@ -34,5 +34,6 @@ await rm(join(publicRoot, "studio"), { recursive: true, force: true });
 await copyIfExists(join(root, "assets"), join(publicRoot, "assets"));
 await copyIfExists(join(root, "apps", "studio", "studio"), join(publicRoot, "studio"));
 await fixStudioAssetPaths();
+await copyIfExists(join(root, "styles.css"), join(publicRoot, "styles.css"));
 await copyIfExists(join(root, "script.js"), join(publicRoot, "script.js"));
 await copyIfExists(join(root, "favicon.ico"), join(publicRoot, "favicon.ico"));

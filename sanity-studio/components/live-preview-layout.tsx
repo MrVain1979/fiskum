@@ -1,6 +1,7 @@
-import { Box, Card, Flex, Stack, Text } from "@sanity/ui";
+import { CollapseIcon, ExpandIcon } from "@sanity/icons";
+import { Box, Button, Card, Flex, Stack, Text, Tooltip } from "@sanity/ui";
 import type { CSSProperties } from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useEditState, type SanityDocument } from "sanity";
 import type { DocumentLayoutProps } from "sanity";
 
@@ -541,9 +542,9 @@ function escapeHtml(value: string) {
 
 const shellStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(420px, 48%) minmax(420px, 52%)",
   height: "100%",
   minHeight: 0,
+  minWidth: 0,
 };
 
 const formStyle: CSSProperties = {
@@ -558,18 +559,30 @@ const previewStyle: CSSProperties = {
   minHeight: 0,
   display: "flex",
   flexDirection: "column",
+  overflow: "hidden",
   background: "#f3f1ec",
 };
 
+const iframeWrapStyle: CSSProperties = {
+  display: "flex",
+  flex: "1 1 0",
+  minHeight: 0,
+  minWidth: 0,
+  overflow: "hidden",
+};
+
 const iframeStyle: CSSProperties = {
-  flex: 1,
+  display: "block",
+  flex: "1 1 0",
   width: "100%",
+  height: "100%",
   minHeight: 0,
   border: 0,
   background: "#f3f1ec",
 };
 
 export function LivePreviewLayout(props: DocumentLayoutProps) {
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const state = useEditState(props.documentId, props.documentType);
   const document = state.draft ?? state.published;
   const route = useMemo(
@@ -589,8 +602,15 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
   }
 
   return (
-    <div style={shellStyle}>
-      <div style={formStyle}>{props.renderDefault(props)}</div>
+    <div
+      style={{
+        ...shellStyle,
+        gridTemplateColumns: isPreviewExpanded
+          ? "minmax(0, 1fr)"
+          : "minmax(360px, 38%) minmax(0, 62%)",
+      }}
+    >
+      {!isPreviewExpanded && <div style={formStyle}>{props.renderDefault(props)}</div>}
       <div style={previewStyle}>
         <Card padding={3} borderBottom tone="transparent">
           <Flex align="center" justify="space-between" gap={3}>
@@ -606,10 +626,30 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
               <Text size={1} muted>
                 {state.ready ? route : "Laster"}
               </Text>
+              <Tooltip
+                content={
+                  <Box padding={2}>
+                    <Text size={1}>
+                      {isPreviewExpanded ? "Vis delt skjerm" : "Utvid preview"}
+                    </Text>
+                  </Box>
+                }
+                placement="bottom"
+                portal
+              >
+                <Button
+                  aria-label={isPreviewExpanded ? "Vis delt skjerm" : "Utvid preview"}
+                  icon={isPreviewExpanded ? CollapseIcon : ExpandIcon}
+                  mode="bleed"
+                  padding={2}
+                  title={isPreviewExpanded ? "Vis delt skjerm" : "Utvid preview"}
+                  onClick={() => setIsPreviewExpanded((expanded) => !expanded)}
+                />
+              </Tooltip>
             </Flex>
           </Flex>
         </Card>
-        <Box flex={1} style={{ minHeight: 0 }}>
+        <Box flex={1} style={iframeWrapStyle}>
           <iframe title="Live preview" src={previewSrc} style={iframeStyle} />
         </Box>
       </div>
