@@ -309,7 +309,12 @@ function renderBuilder(blocks = [], options = {}) {
 function renderGallery(gallery = []) {
   const images = (gallery || []).filter((image) => imageUrl(image));
   if (!images.length) return "";
-  return `<section class="gallery-section"><h2>Galleri</h2><div class="gallery">${images.map((image) => renderImage(image, "", ' loading="lazy" decoding="async"')).join("")}</div></section>`;
+  return `<section class="gallery-section"><div class="section-heading"><p class="eyebrow">Fra verkstedet</p><h2>Maskiner og utstyr</h2></div><div class="gallery">${images
+    .map(
+      (image) =>
+        `<figure>${renderImage(image, "", ' loading="lazy" decoding="async"')}${image.caption ? `<figcaption>${escapeHtml(image.caption)}</figcaption>` : ""}</figure>`,
+    )
+    .join("")}</div></section>`;
 }
 
 function renderHero(data) {

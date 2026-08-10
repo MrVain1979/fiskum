@@ -1506,21 +1506,20 @@ a:focus-visible .card-link-label > span {
 }
 
 .gallery {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  columns: 3 280px;
+  column-gap: 14px;
   margin-top: 10px;
 }
 
-.gallery img:only-child {
-  grid-column: 1 / -1;
-  aspect-ratio: 16 / 9;
+.gallery figure {
+  break-inside: avoid;
+  margin: 0 0 14px;
 }
 
 .gallery img {
+  display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+  height: auto;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -1533,6 +1532,12 @@ a:focus-visible .card-link-label > span {
 .gallery img:hover {
   border-color: rgba(21, 83, 127, 0.34);
   box-shadow: 0 16px 42px rgba(17, 24, 32, 0.1);
+}
+
+.gallery figcaption {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .pdf-downloads {
@@ -2016,9 +2021,12 @@ a:focus-visible .card-link-label > span {
   .quote-grid,
   .page-cards,
   .feature-card-grid,
-  .reference-list,
-  .gallery {
+  .reference-list {
     grid-template-columns: 1fr;
+  }
+
+  .gallery {
+    columns: 1;
   }
 
   .footer-brand,

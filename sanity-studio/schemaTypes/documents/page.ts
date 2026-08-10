@@ -94,6 +94,15 @@ export const page = defineType({
       },
     }),
     defineField({
+      name: "gallery",
+      title: "Bildegalleri",
+      description:
+        "Bilder som vises i galleriet på siden. Dra bildene for å endre rekkefølgen.",
+      type: "array",
+      of: [{ type: "imageWithAlt" }],
+      group: GROUP.MAIN_CONTENT,
+    }),
+    defineField({
       name: "pdfFiles",
       title: "PDF-dokumenter",
       description: "PDF-er som skal vises på denne siden.",

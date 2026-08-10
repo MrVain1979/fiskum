@@ -430,9 +430,12 @@ function renderDraftGallery(document: Partial<SanityDocument> | null) {
 
   if (!images.length) return "";
 
-  return `<div class="gallery">${images
-    .map(({ image, alt }) => renderImage(image, alt, ' loading="lazy" decoding="async"'))
-    .join("")}</div>`;
+  return `<section class="gallery-section"><div class="section-heading"><p class="eyebrow">Fra verkstedet</p><h2>Maskiner og utstyr</h2></div><div class="gallery">${images
+    .map(
+      ({ image, alt }) =>
+        `<figure>${renderImage(image, alt, ' loading="lazy" decoding="async"')}${image.caption ? `<figcaption>${escapeHtml(image.caption)}</figcaption>` : ""}</figure>`,
+    )
+    .join("")}</div></section>`;
 }
 
 function renderHeroMedia(document: Partial<SanityDocument> | null) {
