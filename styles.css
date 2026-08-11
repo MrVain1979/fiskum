@@ -774,6 +774,10 @@ cite {
   padding: 0;
 }
 
+.contact-intro-grid + .contact-information {
+  margin-top: clamp(46px, 7vw, 82px);
+}
+
 .contact-information {
   display: grid;
   grid-template-columns: minmax(260px, 0.86fr) minmax(0, 1.4fr);
