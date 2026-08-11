@@ -94,6 +94,28 @@ export const page = defineType({
       },
     }),
     defineField({
+      name: "galleryEyebrow",
+      title: "Galleri-overtekst",
+      description: "Den lille teksten over galleritittelen.",
+      type: "string",
+      group: GROUP.MAIN_CONTENT,
+      hidden: ({ document }) =>
+        !["/verksted", "/verksted/"].includes(
+          (document?.slug as { current?: string } | undefined)?.current || "",
+        ),
+    }),
+    defineField({
+      name: "galleryTitle",
+      title: "Galleritittel",
+      description: "Overskriften som vises rett over bildegalleriet.",
+      type: "string",
+      group: GROUP.MAIN_CONTENT,
+      hidden: ({ document }) =>
+        !["/verksted", "/verksted/"].includes(
+          (document?.slug as { current?: string } | undefined)?.current || "",
+        ),
+    }),
+    defineField({
       name: "gallery",
       title: "Bildegalleri",
       description:

@@ -306,10 +306,16 @@ function renderBuilder(blocks = [], options = {}) {
     .join("");
 }
 
-function renderGallery(gallery = [], { eyebrow = "Galleri", title = "Bilder" } = {}) {
+function renderGallery(gallery = [], heading) {
   const images = (gallery || []).filter((image) => imageUrl(image));
   if (!images.length) return "";
-  return `<section class="gallery-section"><div class="section-heading"><p class="eyebrow">${escapeHtml(eyebrow)}</p><h2>${escapeHtml(title)}</h2></div><div class="gallery">${images
+  const eyebrow = heading ? heading.eyebrow || "" : "Galleri";
+  const title = heading ? heading.title || "" : "Bilder";
+  const headingHtml =
+    eyebrow || title
+      ? `<div class="section-heading">${eyebrow ? `<p class="eyebrow">${escapeHtml(eyebrow)}</p>` : ""}${title ? `<h2>${escapeHtml(title)}</h2>` : ""}</div>`
+      : "";
+  return `<section class="gallery-section">${headingHtml}<div class="gallery">${images
     .map(
       (image, index) => {
         const src = imageUrl(image);
@@ -538,7 +544,7 @@ function renderPage(data, path) {
     doc._type === "projectReference"
       ? { eyebrow: "Referanse", title: "Prosjektbilder" }
       : path === "/verksted/"
-        ? { eyebrow: "Fra verkstedet", title: "Maskiner og utstyr" }
+        ? { eyebrow: doc.galleryEyebrow, title: doc.galleryTitle }
         : undefined;
   const body = [
     renderBlocks(doc.body),
@@ -608,7 +614,7 @@ export function contentQuery() {
   const portableProjection = `..., crop, hotspot, asset->{url, metadata{dimensions{width,height}}}`;
   const internalLinkProjection = `_id, _type, "slug": slug.current, publishedAt`;
   const linkProjection = `type, external, href, internal->{${internalLinkProjection}}`;
-  const sharedFields = `_id, _type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, icon, seoTitle, seoDescription, seoNoIndex, ogTitle, ogDescription, "slug": slug.current,
+  const sharedFields = `_id, _type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, icon, galleryEyebrow, galleryTitle, seoTitle, seoDescription, seoNoIndex, ogTitle, ogDescription, "slug": slug.current,
     image{${imageProjection}},
     seoImage{${imageProjection}},
     mainImage{${imageProjection}},
