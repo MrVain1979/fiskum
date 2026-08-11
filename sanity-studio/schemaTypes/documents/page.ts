@@ -113,12 +113,14 @@ export const page = defineType({
     defineField({
       name: "sideQuote",
       title: "Kundesitat i sideboks",
-      description: "Sitatet som vises i den hvite boksen til høyre på Verksted-siden.",
+      description:
+        "Sitatet som vises i den hvite boksen til høyre på Verksted- og Kontakt oss-siden.",
       type: "object",
       group: GROUP.MAIN_CONTENT,
       hidden: ({ document }) =>
-        (document?.slug as { current?: string } | undefined)?.current !==
-        "/verksted",
+        !["/verksted", "/kontakt-oss"].includes(
+          (document?.slug as { current?: string } | undefined)?.current || "",
+        ),
       fields: [
         defineField({
           name: "quote",
