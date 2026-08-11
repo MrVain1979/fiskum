@@ -455,7 +455,7 @@ function renderDraftSideQuote(
   document: Partial<SanityDocument> | null,
   route: string,
 ) {
-  if (route !== "/verksted/") return "";
+  if (!["/verksted/", "/kontakt-oss/"].includes(route)) return "";
   const sideQuote = getValue(document, "sideQuote") as
     | { quote?: string; author?: string; company?: string }
     | undefined;
