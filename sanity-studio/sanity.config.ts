@@ -1,5 +1,4 @@
 import { assist } from "@sanity/assist";
-import { visionTool } from "@sanity/vision";
 import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
 import {
@@ -41,7 +40,6 @@ export default defineConfig({
     structureTool({
       structure,
     }),
-    visionTool(),
     iconPicker(),
     media(),
     unsplashImageAsset(),
