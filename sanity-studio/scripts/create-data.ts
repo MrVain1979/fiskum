@@ -69,7 +69,9 @@ async function createData() {
   console.log("\n");
 
   console.log("📸 Generating mock images...");
-  const imagesStore = await generateAndUploadMockImages(client);
+  const imagesStore = await generateAndUploadMockImages(
+    client as unknown as Parameters<typeof generateAndUploadMockImages>[0],
+  );
   console.log("\n");
 
   console.log("🎨 Finding logo image...");

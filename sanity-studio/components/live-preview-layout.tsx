@@ -52,7 +52,7 @@ function syncAttributes(current: Element, next: Element) {
 
 function morphPreviewNode(current: Node, next: Node) {
   if (!sameNodeType(current, next)) {
-    current.replaceWith(next.cloneNode(true));
+    current.parentNode?.replaceChild(next.cloneNode(true), current);
     return;
   }
 

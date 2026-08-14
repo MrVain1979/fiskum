@@ -87,6 +87,14 @@ export const settings = defineType({
       validation: (rule) => rule.email(),
     }),
     defineField({
+      name: "contactFormEnabled",
+      type: "boolean",
+      title: "Vis kontaktskjema",
+      description:
+        "Slå på først når mottak av skjema til e-post er godkjent og testet.",
+      initialValue: false,
+    }),
+    defineField({
       name: "address",
       type: "object",
       title: "Adresse",

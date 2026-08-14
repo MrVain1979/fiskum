@@ -338,5 +338,5 @@ export const getPresentationUrl = () => {
   }
 
   const presentationUrl = (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.SANITY_STUDIO_PRESENTATION_URL;
-  return presentationUrl ?? "https://fiskum-studio.vercel.app";
+  return presentationUrl ?? "https://www.fiskum-sveis.no";
 };

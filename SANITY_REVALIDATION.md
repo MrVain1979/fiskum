@@ -7,7 +7,7 @@ Ordinary CMS publishing must not trigger a full Vercel Production Deploy.
 Use a Sanity webhook that sends a signed `POST` request to:
 
 ```text
-https://fiskum-studio.vercel.app/api/revalidate
+https://www.fiskum-sveis.no/api/revalidate
 ```
 
 Required Vercel environment variable:

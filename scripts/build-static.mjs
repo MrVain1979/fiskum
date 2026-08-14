@@ -554,7 +554,10 @@ function renderPage(data, path) {
     renderPdfs(doc.pdfFiles),
   ].join("");
   if (path === "/kontakt-oss/") {
-    return `<main><section class="page-hero">${breadcrumbHtml(doc, path)}<p class="eyebrow">${escapeHtml(data.settings?.companyName || "")}</p><h1>${escapeHtml(title)}</h1>${lead ? `<p>${escapeHtml(lead)}</p>` : ""}</section><section class="page-content contact-page"><div class="page-grid contact-intro-grid"><div class="content-stack">${body}</div>${renderSidePanel(data, path)}</div>${renderContactDetails(doc, data.settings)}${renderContactForm(data.settings)}</section></main>`;
+    const contactForm = data.settings?.contactFormEnabled
+      ? renderContactForm(data.settings)
+      : "";
+    return `<main><section class="page-hero">${breadcrumbHtml(doc, path)}<p class="eyebrow">${escapeHtml(data.settings?.companyName || "")}</p><h1>${escapeHtml(title)}</h1>${lead ? `<p>${escapeHtml(lead)}</p>` : ""}</section><section class="page-content contact-page"><div class="page-grid contact-intro-grid"><div class="content-stack">${body}</div>${renderSidePanel(data, path)}</div>${renderContactDetails(doc, data.settings)}${contactForm}</section></main>`;
   }
   return `<main><section class="page-hero">${breadcrumbHtml(doc, path)}<p class="eyebrow">${escapeHtml(data.settings?.companyName || "")}</p><h1>${escapeHtml(title)}</h1>${lead ? `<p>${escapeHtml(lead)}</p>` : ""}</section><section class="page-content"><div class="page-grid"><div class="content-stack">${body}</div>${renderSidePanel(data, path)}</div>${renderContextList(data, path)}</section></main>`;
 }
@@ -635,7 +638,7 @@ export function contentQuery() {
     sideQuote{quote, author, company},
     "pdfFiles": pdfFiles[]{title, description, "url": file.asset->url}`;
   return `{
-    "settings": *[_type == "settings"][0]{companyName, siteTitle, siteDescription, phone, contactEmail, address, socialLinks, logo{${imageProjection}}, "logoUrl": logo.asset->url},
+    "settings": *[_type == "settings"][0]{companyName, siteTitle, siteDescription, phone, contactEmail, contactFormEnabled, address, socialLinks, logo{${imageProjection}}, "logoUrl": logo.asset->url},
     "navbar": *[_type == "navbar"][0]{columns[]{_type, name, title, url{${linkProjection}}, links[]{name, url{${linkProjection}}}}},
     "footer": *[_type == "footer"][0]{subtitle, copyrightText, developerCreditText, developerCreditUrl, columns[]{title, links[]{name, url{${linkProjection}}}}},
     "homePage": *[_type == "homePage"][0]{${sharedFields}},
@@ -695,6 +698,26 @@ export function validateContent(data, documents) {
     );
   if ((data?.newsPosts || []).length < 1)
     issues.push("Mangler nyheter/Aktuelt i Sanity.");
+
+  const routes = [
+    data?.homePage,
+    ...(data?.pages || []),
+    ...(data?.services || []),
+    ...(data?.references || []),
+    ...(data?.newsPosts || []),
+  ]
+    .filter(Boolean)
+    .map((document) => ({ id: document._id, route: routeFor(document) }))
+    .filter((entry) => entry.route);
+  const duplicateRoutes = routes.reduce((duplicates, entry) => {
+    const matches = routes.filter((candidate) => candidate.route === entry.route);
+    if (matches.length > 1) duplicates.set(entry.route, matches.map((match) => match.id));
+    return duplicates;
+  }, new Map());
+
+  for (const [route, ids] of duplicateRoutes) {
+    issues.push(`Duplisert URL i Sanity: ${route} brukes av ${ids.join(", ")}.`);
+  }
 
   return issues;
 }
