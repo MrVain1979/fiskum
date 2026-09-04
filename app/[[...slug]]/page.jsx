@@ -6,7 +6,7 @@ import {
   fetchContent,
   findRedirect,
   pageLead,
-  pageTitle,
+  pageMetaTitle,
   routeFor,
   validateContent,
 } from "../../scripts/build-static.mjs";
@@ -85,8 +85,12 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  const title = pageTitle(document) || data.settings?.siteTitle || "";
-  const description = pageLead(document) || data.settings?.siteDescription || "";
+  const title = pageMetaTitle(document) || data.settings?.siteTitle || "";
+  const description =
+    document?.seoDescription ||
+    pageLead(document) ||
+    data.settings?.siteDescription ||
+    "";
   const image =
     document?.seoImage?.url ||
     document?.mainImage?.url ||
@@ -102,7 +106,7 @@ export async function generateMetadata({ params }) {
       canonical: new URL(path, productionOrigin).toString(),
     },
     openGraph: {
-      title: document?.ogTitle || document?.seoTitle || title,
+      title: document?.ogTitle || title,
       description: document?.ogDescription || document?.seoDescription || description,
       url: new URL(path, productionOrigin).toString(),
       images: image ? [image] : [],

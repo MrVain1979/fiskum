@@ -395,6 +395,15 @@ export function pageTitle(doc) {
   return doc?.title || doc?.internalTitle || "";
 }
 
+export function pageMetaTitle(doc) {
+  if (doc?.seoTitle) return doc.seoTitle;
+
+  const title = pageTitle(doc);
+  return doc?._type === "projectReference" && title
+    ? `Referanse: ${title}`
+    : title;
+}
+
 export function pageLead(doc) {
   return (
     doc?.description ||
@@ -575,8 +584,9 @@ export function documentBody(data, path) {
 
 export function pageHtml(data, path) {
   const doc = data.document;
-  const title = pageTitle(doc) || data.settings?.siteTitle || "";
-  const description = pageLead(doc) || data.settings?.siteDescription || "";
+  const title = pageMetaTitle(doc) || data.settings?.siteTitle || "";
+  const description =
+    doc?.seoDescription || pageLead(doc) || data.settings?.siteDescription || "";
   const seoImage = imageUrl(
     doc?.seoImage ||
       doc?.mainImage ||
@@ -593,7 +603,7 @@ export function pageHtml(data, path) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title ? `${title} - ${data.settings?.companyName || ""}` : "")}</title>
     <meta name="description" content="${escapeHtml(description)}" />
-    <meta property="og:title" content="${escapeHtml(doc?.ogTitle || doc?.seoTitle || title)}" />
+    <meta property="og:title" content="${escapeHtml(doc?.ogTitle || title)}" />
     <meta property="og:description" content="${escapeHtml(doc?.ogDescription || doc?.seoDescription || description)}" />
     <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
     ${seoImage ? `<meta property="og:image" content="${escapeHtml(seoImage)}" />` : ""}
