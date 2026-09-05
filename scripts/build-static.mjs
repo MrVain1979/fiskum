@@ -166,7 +166,7 @@ function renderBlocks(blocks = []) {
 
       const html = (block.children || [])
         .map((child) => {
-          let value = escapeHtml(child.text || "");
+          let value = escapeHtml(child.text || "").replace(/\r\n?|\n/g, "<br>");
           const marks = child.marks || [];
           if (marks.includes("strong")) value = `<strong>${value}</strong>`;
           if (marks.includes("em")) value = `<em>${value}</em>`;
