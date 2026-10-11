@@ -3,10 +3,11 @@ import {
   fetchPreviewContent,
   pageHtml,
   routeFor,
-  validateContent,
 } from "../../../scripts/build-static.mjs";
+import { isAuthorizedPreviewRequest, previewHeaders } from "../../../lib/preview-session.mjs";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 export const revalidate = 0;
 
 function normalizePath(value = "") {
@@ -38,27 +39,19 @@ function htmlResponse(html, status = 200) {
     status,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-store, max-age=0",
-      "X-Robots-Tag": "noindex, nofollow",
+      ...previewHeaders,
     },
   });
 }
 
-function isAllowedPreviewRequest(request) {
-  const referer = request.headers.get("referer") || "";
-  if (process.env.NODE_ENV !== "production" && !referer) return true;
-
-  try {
-    const requestUrl = new URL(request.url);
-    const refererUrl = new URL(referer);
-    return refererUrl.origin === requestUrl.origin && refererUrl.pathname.startsWith("/studio");
-  } catch {
-    return false;
-  }
-}
-
 export async function GET(request, { params }) {
-  if (!isAllowedPreviewRequest(request)) {
+  let authorized = false;
+  try {
+    authorized = isAuthorizedPreviewRequest(request);
+  } catch {
+    return htmlResponse('<!doctype html><html lang="nb"><body><h1>Preview er midlertidig utilgjengelig</h1></body></html>', 503);
+  }
+  if (!authorized) {
     return htmlResponse(
       '<!doctype html><html lang="nb"><body style="font-family:Arial,sans-serif;padding:32px"><h1>Preview er bare tilgjengelig fra Sanity Studio</h1></body></html>',
       403,
@@ -72,21 +65,14 @@ export async function GET(request, { params }) {
   let data;
   try {
     data = await fetchPreviewContent();
-  } catch (error) {
+  } catch {
     return htmlResponse(
-      `<!doctype html><html lang="nb"><body style="font-family:Arial,sans-serif;padding:32px"><h1>Preview kunne ikke lastes</h1><p>${String(error?.message || error)}</p></body></html>`,
+      '<!doctype html><html lang="nb"><body style="font-family:Arial,sans-serif;padding:32px"><h1>Preview kunne ikke lastes</h1></body></html>',
       500,
     );
   }
 
   const documents = allDocuments(data);
-  const issues = validateContent(data, documents);
-  if (issues.length) {
-    return htmlResponse(
-      `<!doctype html><html lang="nb"><body style="font-family:Arial,sans-serif;padding:32px"><h1>Sanity mangler innhold</h1><ul>${issues.map((issue) => `<li>${issue}</li>`).join("")}</ul></body></html>`,
-      422,
-    );
-  }
 
   const document =
     (documentId

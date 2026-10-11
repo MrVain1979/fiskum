@@ -1,23 +1,15 @@
-import {
-  allDocuments,
-  fetchContent,
-  routeFor,
-} from "../scripts/build-static.mjs";
+import { fetchRouteIndex } from "../lib/sanity-content.mjs";
+import { documentPath } from "../lib/sanity-cache.mjs";
 
 const productionOrigin = "https://www.fiskum-sveis.no";
 
 export const dynamic = "force-static";
 
 export default async function sitemap() {
-  const data = await fetchContent({
-    cache: "force-cache",
-    next: { tags: ["site-shell"] },
-  });
-
-  return allDocuments(data)
+  return (await fetchRouteIndex())
     .filter((document) => !document.seoNoIndex)
     .map((document) => ({
-      url: new URL(routeFor(document), productionOrigin).toString(),
+      url: new URL(documentPath(document), productionOrigin).toString(),
       changeFrequency: document._type === "newsPost" ? "monthly" : "yearly",
       priority: document._type === "homePage" ? 1 : 0.7,
     }));

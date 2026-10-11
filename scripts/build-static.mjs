@@ -1,6 +1,9 @@
 import { access, cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { contentQuery } from "../lib/sanity-projections.mjs";
+
+export { contentQuery };
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const productionOrigin = "https://www.fiskum-sveis.no";
@@ -62,7 +65,12 @@ function normalizePath(value = "") {
 
 function resolveLink(url) {
   if (!url) return "";
-  if (url.type === "internal") return routeFor(url.internal || {});
+  if (url.type === "internal") {
+    const target = url.internal;
+    if (!target?._id) return "";
+    if (target._type !== "homePage" && !cleanText(target.slug || "")) return "";
+    return routeFor(target);
+  }
   return url.external || url.href || "";
 }
 
@@ -299,7 +307,7 @@ function renderBuilder(blocks = [], options = {}) {
         return `<section class="section cms-block">${block.eyebrow ? `<p class="eyebrow">${escapeHtml(block.eyebrow)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${renderBlocks(block.richText)}<div class="page-cards">${(block.cards || []).map(renderImageCard).join("")}</div></section>`;
       }
       if (block._type === "faqAccordion") {
-        return `<section class="section faq cms-block">${block.eyebrow ? `<p class="eyebrow">${escapeHtml(block.eyebrow)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${(block.faqs || []).map((faq, index) => `<details ${index === 0 ? "open" : ""}><summary>${escapeHtml(faq.title || "")}</summary>${renderBlocks(faq.richText)}</details>`).join("")}</section>`;
+        return `<section class="section faq cms-block">${block.eyebrow ? `<p class="eyebrow">${escapeHtml(block.eyebrow)}</p>` : ""}${block.title ? `<h2>${escapeHtml(block.title)}</h2>` : ""}${(block.faqs || []).filter(Boolean).map((faq, index) => `<details ${index === 0 ? "open" : ""}><summary>${escapeHtml(faq.title || "")}</summary>${renderBlocks(faq.richText)}</details>`).join("")}</section>`;
       }
       return "";
     })
@@ -396,12 +404,61 @@ export function pageTitle(doc) {
 }
 
 export function pageMetaTitle(doc) {
-  if (doc?.seoTitle) return doc.seoTitle;
+  const seoTitle = metadataText(doc?.seoTitle);
+  if (seoTitle) return seoTitle;
 
-  const title = pageTitle(doc);
+  const title = metadataText(doc?.title, doc?.internalTitle);
   return doc?._type === "projectReference" && title
     ? `Referanse: ${title}`
     : title;
+}
+
+function metadataText(...values) {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const text = cleanText(value).replace(/\s+/g, " ");
+    if (text) return text;
+  }
+  return "";
+}
+
+// Keep metadata fallback separate from the visible lead: an intentionally blank
+// lead must not suddenly add body text to the page when its metadata is fixed.
+export function pageMetadata(data, path) {
+  const doc = data.document;
+  const title = metadataText(pageMetaTitle(doc), data.settings?.siteTitle);
+  const description = metadataText(
+    doc?.seoDescription,
+    doc?.description,
+    doc?.summary,
+    doc?.excerpt,
+    textFromBlocks(doc?.body),
+    textFromBlocks(doc?.richText),
+    data.settings?.siteDescription,
+  );
+  const image = [
+    doc?.seoImage,
+    doc?.mainImage,
+    doc?.image,
+    doc?.heroImages?.[0],
+    doc?.gallery?.[0],
+  ].map(imageUrl).find(Boolean) || "";
+  const canonicalUrl = new URL(path, productionOrigin).toString();
+  const companyName = metadataText(data.settings?.companyName);
+
+  return {
+    title: title ? [title, companyName].filter(Boolean).join(" - ") : "",
+    description,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      title: metadataText(doc?.ogTitle, title),
+      description: metadataText(doc?.ogDescription, description),
+      url: canonicalUrl,
+      images: image ? [image] : [],
+    },
+    twitter: { images: image ? [image] : [] },
+    ...(doc?.seoNoIndex ? { robots: { index: false, follow: true } } : {}),
+  };
 }
 
 export function pageLead(doc) {
@@ -483,10 +540,10 @@ function renderSidePanel(data, path) {
 
 function renderContextList(data, path) {
   if (path === "/tjenester/") {
-    return `<div class="page-cards">${(data.services || []).map((service) => `<a class="page-card" href="${escapeHtml(normalizePath(service.slug))}"><h3>${escapeHtml(pageTitle(service))}</h3><p>${escapeHtml(service.summary || "")}</p>${renderCardLinkLabel()}</a>`).join("")}</div>`;
+    return `<div class="page-cards">${(data.services || []).map((service) => `<a class="page-card" href="${escapeHtml(normalizePath(service.slug))}"><h2 class="card-title">${escapeHtml(pageTitle(service))}</h2><p>${escapeHtml(service.summary || "")}</p>${renderCardLinkLabel()}</a>`).join("")}</div>`;
   }
   if (path === "/referanser/") {
-    return `<div class="reference-list">${(data.references || []).map((reference) => `<a class="reference-card" href="/referanser/${escapeHtml(String(reference.slug || "").replace(/^\/+|\/+$/g, ""))}/">${imageUrl(reference.image) ? renderImage(reference.image, pageTitle(reference), ' loading="lazy" decoding="async"') : ""}<span>Referanse</span><h3>${escapeHtml(pageTitle(reference))}</h3><p>${escapeHtml(reference.summary || "")}</p>${renderCardLinkLabel()}</a>`).join("")}</div>`;
+    return `<div class="reference-list">${(data.references || []).map((reference) => `<a class="reference-card" href="/referanser/${escapeHtml(String(reference.slug || "").replace(/^\/+|\/+$/g, ""))}/">${imageUrl(reference.image) ? renderImage(reference.image, pageTitle(reference), ' loading="lazy" decoding="async"') : ""}<span>Referanse</span><h2 class="card-title">${escapeHtml(pageTitle(reference))}</h2><p>${escapeHtml(reference.summary || "")}</p>${renderCardLinkLabel()}</a>`).join("")}</div>`;
   }
   if (path === "/aktuelt/" || path === "/category/aktuelt/") {
     return `<div class="news-list">${(data.newsPosts || []).map((post) => `<a class="news-list-item" href="${escapeHtml(newsHref(post))}"><span>${escapeHtml(formatDate(post.publishedAt))}</span><h2>${escapeHtml(pageTitle(post))}</h2><p>${escapeHtml(post.excerpt || "")}</p>${renderCardLinkLabel()}</a>`).join("")}</div>`;
@@ -583,28 +640,20 @@ export function documentBody(data, path) {
 }
 
 export function pageHtml(data, path) {
-  const doc = data.document;
-  const title = pageMetaTitle(doc) || data.settings?.siteTitle || "";
-  const description =
-    doc?.seoDescription || pageLead(doc) || data.settings?.siteDescription || "";
-  const seoImage = imageUrl(
-    doc?.seoImage ||
-      doc?.mainImage ||
-      doc?.image ||
-      doc?.heroImages?.[0] ||
-      doc?.gallery?.[0],
-  );
-  const canonicalUrl = new URL(path, productionOrigin).toString();
+  const metadata = pageMetadata(data, path);
+  const seoImage = metadata.openGraph.images[0];
+  const canonicalUrl = metadata.alternates.canonical;
   const body = documentBody(data, path);
   return `<!doctype html>
 <html lang="nb">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(title ? `${title} - ${data.settings?.companyName || ""}` : "")}</title>
-    <meta name="description" content="${escapeHtml(description)}" />
-    <meta property="og:title" content="${escapeHtml(doc?.ogTitle || title)}" />
-    <meta property="og:description" content="${escapeHtml(doc?.ogDescription || doc?.seoDescription || description)}" />
+    <title>${escapeHtml(metadata.title)}</title>
+    <meta name="description" content="${escapeHtml(metadata.description)}" />
+    ${metadata.robots?.index === false ? '<meta name="robots" content="noindex, follow" />' : ""}
+    <meta property="og:title" content="${escapeHtml(metadata.openGraph.title)}" />
+    <meta property="og:description" content="${escapeHtml(metadata.openGraph.description)}" />
     <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
     ${seoImage ? `<meta property="og:image" content="${escapeHtml(seoImage)}" />` : ""}
     ${seoImage ? `<meta name="twitter:image" content="${escapeHtml(seoImage)}" />` : ""}
@@ -620,45 +669,6 @@ export function pageHtml(data, path) {
   </body>
 </html>
 `;
-}
-
-export function contentQuery() {
-  const imageProjection = `alt, caption, crop, hotspot, "url": asset->url, asset->{url, metadata{dimensions{width,height}}}`;
-  const portableProjection = `..., crop, hotspot, asset->{url, metadata{dimensions{width,height}}}`;
-  const internalLinkProjection = `_id, _type, "slug": slug.current, publishedAt`;
-  const linkProjection = `type, external, href, internal->{${internalLinkProjection}}`;
-  const sharedFields = `_id, _type, internalTitle, title, description, heroLead, summary, excerpt, publishedAt, icon, galleryEyebrow, galleryTitle, seoTitle, seoDescription, seoNoIndex, ogTitle, ogDescription, "slug": slug.current,
-    image{${imageProjection}},
-    seoImage{${imageProjection}},
-    mainImage{${imageProjection}},
-    body[]{${portableProjection}},
-    richText[]{${portableProjection}},
-    gallery[]{${imageProjection}},
-    heroImages[]{${imageProjection}},
-    pageBuilder[]{
-      ...,
-      image{${imageProjection}},
-      richText[]{${portableProjection}},
-      cards[]{..., image{${imageProjection}}, richText[]{${portableProjection}}},
-      faqs[]->{title, richText[]{${portableProjection}}},
-      buttons[]{text, variant, url{${linkProjection}}}
-    },
-    contactDetails{bankName, bankAccount, organizationNumber},
-    contactPeople[]{_key, name, role, phone, email},
-    sideQuote{quote, author, company},
-    "pdfFiles": pdfFiles[]{title, description, "url": file.asset->url}`;
-  return `{
-    "settings": *[_type == "settings"][0]{companyName, siteTitle, siteDescription, phone, contactEmail, contactFormEnabled, address, socialLinks, logo{${imageProjection}}, "logoUrl": logo.asset->url},
-    "navbar": *[_type == "navbar"][0]{columns[]{_type, name, title, url{${linkProjection}}, links[]{name, url{${linkProjection}}}}},
-    "footer": *[_type == "footer"][0]{subtitle, copyrightText, developerCreditText, developerCreditUrl, columns[]{title, links[]{name, url{${linkProjection}}}}},
-    "homePage": *[_type == "homePage"][0]{${sharedFields}},
-    "pages": *[_type == "page"] | order(_createdAt asc){${sharedFields}},
-    "services": *[_type == "service"] | order(_createdAt asc){${sharedFields}, "image": gallery[0]{${imageProjection}}},
-    "references": *[_type == "projectReference"] | order(_createdAt asc){${sharedFields}, category, "image": gallery[0]{${imageProjection}}},
-    "newsPosts": *[_type == "newsPost"] | order(publishedAt desc){${sharedFields}, "image": mainImage{${imageProjection}}},
-    "faqs": *[_type == "faq"] | order(_createdAt asc){title, richText[]{${portableProjection}}},
-    "redirects": *[_type == "redirect"] | order(_createdAt asc){title, from, permanent, to{${linkProjection}}}
-  }`;
 }
 
 export function queryUrl(query, params = {}) {

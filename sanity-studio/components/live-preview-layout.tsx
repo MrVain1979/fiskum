@@ -1,8 +1,9 @@
 import { CollapseIcon, ExpandIcon } from "@sanity/icons";
+import { createPreviewSecret } from "@sanity/preview-url-secret/create-secret";
 import { Box, Button, Card, Flex, Stack, Text, Tooltip } from "@sanity/ui";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useEditState, type SanityDocument } from "sanity";
+import { useClient, useCurrentUser, useEditState, type SanityDocument } from "sanity";
 import type { DocumentLayoutProps } from "sanity";
 
 const previewTypes = new Set([
@@ -716,10 +717,17 @@ const iframeStyle: CSSProperties = {
 };
 
 export function LivePreviewLayout(props: DocumentLayoutProps) {
+  const client = useClient({ apiVersion: "2025-02-19" });
+  const currentUser = useCurrentUser();
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
+  const [previewAuthorized, setPreviewAuthorized] = useState(false);
+  const [previewPaused, setPreviewPaused] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
+  const [authAttempt, setAuthAttempt] = useState(0);
   const [frameEpoch, setFrameEpoch] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const requestIdRef = useRef(0);
+  const lastAuthRetryRef = useRef(0);
   const state = useEditState(props.documentId, props.documentType);
   const document = state.draft ?? state.published;
   const version = useMemo(() => documentVersion(document), [document]);
@@ -735,7 +743,66 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
   }, [props.documentId, props.documentType, route]);
 
   useEffect(() => {
-    if (!state.ready || !document || !previewTypes.has(props.documentType)) return;
+    if (!previewTypes.has(props.documentType) || !currentUser || previewPaused) {
+      setPreviewAuthorized(false);
+      return;
+    }
+
+    let cancelled = false;
+    let inFlight = false;
+    const controller = new AbortController();
+    const secretId = window.crypto.randomUUID();
+    const authorize = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        // The Studio's authenticated client creates a short-lived preview secret.
+        // Neither its API token nor this secret is put in the iframe URL or storage.
+        const { secret } = await createPreviewSecret(
+          client, "fiskum.studio.preview", `${window.location.origin}/studio/`, currentUser.id, secretId,
+        );
+        if (cancelled) {
+          void client.delete(`drafts.${secretId}`).catch(() => {});
+          return;
+        }
+        const response = await fetch("/preview/session", {
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ secret }),
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Preview authorization failed");
+        if (!cancelled) {
+          setPreviewAuthorized(true);
+          setPreviewError(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setPreviewAuthorized(false);
+          setPreviewError(true);
+        }
+      } finally {
+        inFlight = false;
+      }
+    };
+    void authorize();
+    const refresh = window.setInterval(() => void authorize(), 10 * 60 * 1000);
+    const onVisible = () => { if (window.document.visibilityState === "visible") void authorize(); };
+    window.document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      controller.abort();
+      window.clearInterval(refresh);
+      window.document.removeEventListener("visibilitychange", onVisible);
+      // Cleanup the ephemeral secret; expired secrets also have Sanity's normal GC.
+      void client.delete(`drafts.${secretId}`).catch(() => {});
+    };
+  }, [authAttempt, client, currentUser?.id, props.documentType, previewPaused]);
+
+  useEffect(() => {
+    if (!previewAuthorized || !state.ready || !document || !previewTypes.has(props.documentType)) return;
 
     const controller = new AbortController();
     const requestId = ++requestIdRef.current;
@@ -750,6 +817,15 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
         });
 
         if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            setPreviewAuthorized(false);
+            // Resume an expired session when a background tab wakes up. Throttle
+            // retries so a persistent configuration failure cannot create a loop.
+            if (Date.now() - lastAuthRetryRef.current > 30_000) {
+              lastAuthRetryRef.current = Date.now();
+              setAuthAttempt((attempt) => attempt + 1);
+            }
+          }
           throw new Error(`Preview request failed: ${response.status}`);
         }
 
@@ -765,9 +841,9 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
         const scrollY = frameWindow.scrollY;
         morphPreviewDocument(frameDocument, html);
         frameWindow.scrollTo(scrollX, scrollY);
-      } catch (error) {
+      } catch {
         if (controller.signal.aborted) return;
-        console.warn("Could not update live preview", error);
+        setPreviewError(true);
       }
     }, previewUpdateDelay);
 
@@ -775,7 +851,7 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [document, frameEpoch, previewSrc, props.documentType, state.ready, version]);
+  }, [document, frameEpoch, previewAuthorized, previewSrc, props.documentType, state.ready, version]);
 
   if (!previewTypes.has(props.documentType)) {
     return props.renderDefault(props);
@@ -803,6 +879,28 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
               </Text>
             </Stack>
             <Flex align="center" gap={2}>
+              <Button
+                mode="bleed"
+                text={previewPaused || previewError ? "Start preview" : "Avslutt preview"}
+                onClick={async () => {
+                  if (previewPaused || previewError) {
+                    setPreviewError(false);
+                    setPreviewPaused(false);
+                    setAuthAttempt((attempt) => attempt + 1);
+                    return;
+                  }
+                  setPreviewPaused(true);
+                  setPreviewAuthorized(false);
+                  try {
+                    const response = await fetch("/preview/session", {
+                      method: "DELETE", credentials: "same-origin", cache: "no-store",
+                    });
+                    if (!response.ok) setPreviewError(true);
+                  } catch {
+                    setPreviewError(true);
+                  }
+                }}
+              />
               <Text size={1} muted>
                 {state.ready ? route : "Laster"}
               </Text>
@@ -830,13 +928,15 @@ export function LivePreviewLayout(props: DocumentLayoutProps) {
           </Flex>
         </Card>
         <Box flex={1} style={iframeWrapStyle}>
-          <iframe
+          {previewAuthorized ? <iframe
             ref={iframeRef}
             title="Live preview"
             src={previewSrc}
             style={iframeStyle}
             onLoad={() => setFrameEpoch((epoch) => epoch + 1)}
-          />
+          /> : <Box padding={4}><Text size={1}>
+            {previewError ? "Preview kunne ikke autoriseres. Start preview på nytt." : previewPaused ? "Preview er avsluttet." : "Autoriserer preview …"}
+          </Text></Box>}
         </Box>
       </div>
     </div>
