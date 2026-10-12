@@ -320,10 +320,15 @@ h2 {
   letter-spacing: 0;
 }
 
-h3 {
+h3,
+.card-title {
   margin-bottom: 10px;
   font-size: 1.2rem;
   line-height: 1.2;
+}
+
+.card-title {
+  letter-spacing: inherit;
 }
 
 .hero-copy p:not(.eyebrow) {
@@ -1496,6 +1501,7 @@ a:focus-visible .card-link-label > span {
 
 .reference-card span,
 .reference-card h3,
+.reference-card .card-title,
 .reference-card p {
   margin-left: 22px;
   margin-right: 22px;
@@ -1509,7 +1515,8 @@ a:focus-visible .card-link-label > span {
   text-transform: uppercase;
 }
 
-.reference-card h3 {
+.reference-card h3,
+.reference-card .card-title {
   margin-bottom: 8px;
 }
 

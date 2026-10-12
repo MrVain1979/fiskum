@@ -5,9 +5,13 @@
     "build:static": "node scripts/build-static.mjs"
   },
   "dependencies": {
+    "@sanity/preview-url-secret": "2.1.16",
     "next": "^15.4.3",
     "next-sanity": "^10.0.11",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "groq-js": "1.30.3"
   }
 }

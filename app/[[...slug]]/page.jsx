@@ -1,64 +1,24 @@
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 
 import {
-  allDocuments,
   documentBody,
-  fetchContent,
   findRedirect,
-  pageLead,
-  pageMetaTitle,
-  routeFor,
-  validateContent,
+  pageMetadata,
 } from "../../scripts/build-static.mjs";
+import { fetchPageData, fetchRouteIndex } from "../../lib/sanity-content.mjs";
+import { documentPath, normalizePath } from "../../lib/sanity-cache.mjs";
 
 export const dynamic = "force-static";
 export const dynamicParams = true;
-const productionOrigin = "https://www.fiskum-sveis.no";
-
-function normalizePath(value = "") {
-  if (!value || value === "/") return "/";
-  const path = value.startsWith("/") ? value : `/${value}`;
-  return path.endsWith("/") ? path : `${path}/`;
-}
 
 function pathFromParams(params) {
   const slug = params?.slug || [];
   return normalizePath(slug.length ? `/${slug.join("/")}` : "/");
 }
 
-function routeTags(path) {
-  return [`route:${path}`, "site-shell"];
-}
-
-async function getDataForPath(path) {
-  const data = await fetchContent(
-    {
-      cache: "force-cache",
-      next: {
-        tags: routeTags(path),
-      },
-    },
-    path,
-  );
-  const documents = allDocuments(data);
-  const lookupPath = path === "/category/aktuelt/" ? "/aktuelt/" : path;
-  const document = documents.find((doc) => routeFor(doc) === lookupPath);
-  return { data, documents, document };
-}
-
 export async function generateStaticParams() {
-  const data = await fetchContent(
-    {
-      cache: "force-cache",
-      next: {
-        tags: ["site-shell"],
-      },
-    },
-    "static-params",
-  );
-
-  const routes = allDocuments(data)
-    .map((doc) => routeFor(doc))
+  const routes = (await fetchRouteIndex())
+    .map(documentPath)
     .filter(Boolean);
 
   if (routes.includes("/aktuelt/")) {
@@ -73,7 +33,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }) {
   const path = pathFromParams(await params);
-  const { data, document } = await getDataForPath(path);
+  const { data, document } = await fetchPageData(path);
 
   if (!document) {
     return {
@@ -85,44 +45,12 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  const title = pageMetaTitle(document) || data.settings?.siteTitle || "";
-  const description =
-    document?.seoDescription ||
-    pageLead(document) ||
-    data.settings?.siteDescription ||
-    "";
-  const image =
-    document?.seoImage?.url ||
-    document?.mainImage?.url ||
-    document?.image?.url ||
-    document?.heroImages?.[0]?.url ||
-    document?.gallery?.[0]?.url ||
-    "";
-
-  return {
-    title: title ? `${title} - ${data.settings?.companyName || ""}` : "",
-    description,
-    alternates: {
-      canonical: new URL(path, productionOrigin).toString(),
-    },
-    openGraph: {
-      title: document?.ogTitle || title,
-      description: document?.ogDescription || document?.seoDescription || description,
-      url: new URL(path, productionOrigin).toString(),
-      images: image ? [image] : [],
-    },
-    twitter: {
-      images: image ? [image] : [],
-    },
-  };
+  return pageMetadata({ ...data, document }, path === "/category/aktuelt/" ? "/aktuelt/" : path);
 }
 
 export default async function Page({ params }) {
   const path = pathFromParams(await params);
-  const { data, documents, document } = await getDataForPath(path);
-
-  const issues = validateContent(data, documents);
-  if (issues.length) notFound();
+  const { data, document } = await fetchPageData(path);
   if (!document) {
     const redirectRule = findRedirect(data, path);
     if (redirectRule?.destination) {
