@@ -121,6 +121,29 @@ function imageUrl(image) {
   return `${url}${separator}rect=${left},${top},${rectWidth},${rectHeight}`;
 }
 
+function socialImage(image) {
+  const source = imageUrl(image);
+  if (!source) return null;
+  const encoded = source.match(/-(\d+)x(\d+)\.[a-z\d]+(?:[?#]|$)/i);
+  const dimensions = imageDimensions(image);
+  const width = dimensions.width || Number(encoded?.[1]);
+  const height = dimensions.height || Number(encoded?.[2]);
+  const crop = image.crop || {};
+  if (width && height && (width * (1 - (crop.left || 0) - (crop.right || 0)) < 1200 || height * (1 - (crop.top || 0) - (crop.bottom || 0)) < 630)) return null;
+  const url = new URL(source, productionOrigin);
+  if (url.hostname === "cdn.sanity.io") {
+    url.searchParams.set("w", "1200");
+    url.searchParams.set("h", "630");
+    url.searchParams.set("fit", "crop");
+    url.searchParams.set("auto", "format");
+    if (image.hotspot?.x != null && image.hotspot?.y != null) {
+      url.searchParams.set("fp-x", String(image.hotspot.x));
+      url.searchParams.set("fp-y", String(image.hotspot.y));
+    }
+  }
+  return {url: url.toString(), width: 1200, height: 630, alt: cleanText(image.alt) || "Stål- og metallarbeid fra Fiskum Plate og Sveiseverksted"};
+}
+
 function imageStyleAttr(image) {
   const hotspot = image?.hotspot;
   if (
@@ -442,7 +465,11 @@ export function pageMetadata(data, path) {
     doc?.image,
     doc?.heroImages?.[0],
     doc?.gallery?.[0],
-  ].map(imageUrl).find(Boolean) || "";
+    data.homePage?.seoImage,
+    data.homePage?.heroImages?.[0],
+    // Existing published homepage photo is the last resort for image-free indexes.
+    {url: "https://cdn.sanity.io/images/qgyys6fw/production/737fc8d8206954864b424e56c284340aba6733e7-1900x665.webp", alt: "Stålprosjekt fra Fiskum Plate og Sveiseverksted"},
+  ].map(socialImage).find(Boolean);
   const canonicalUrl = new URL(path, productionOrigin).toString();
   const companyName = metadataText(data.settings?.companyName);
 
@@ -456,7 +483,7 @@ export function pageMetadata(data, path) {
       url: canonicalUrl,
       images: image ? [image] : [],
     },
-    twitter: { images: image ? [image] : [] },
+    twitter: { card: "summary_large_image", images: image ? [{url: image.url, alt: image.alt}] : [] },
     ...(doc?.seoNoIndex ? { robots: { index: false, follow: true } } : {}),
   };
 }
@@ -655,8 +682,8 @@ export function pageHtml(data, path) {
     <meta property="og:title" content="${escapeHtml(metadata.openGraph.title)}" />
     <meta property="og:description" content="${escapeHtml(metadata.openGraph.description)}" />
     <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
-    ${seoImage ? `<meta property="og:image" content="${escapeHtml(seoImage)}" />` : ""}
-    ${seoImage ? `<meta name="twitter:image" content="${escapeHtml(seoImage)}" />` : ""}
+    ${seoImage ? `<meta property="og:image" content="${escapeHtml(seoImage.url)}" /><meta property="og:image:width" content="1200" /><meta property="og:image:height" content="630" /><meta property="og:image:alt" content="${escapeHtml(seoImage.alt)}" />` : ""}
+    ${seoImage ? `<meta name="twitter:card" content="summary_large_image" /><meta name="twitter:image" content="${escapeHtml(seoImage.url)}" /><meta name="twitter:image:alt" content="${escapeHtml(seoImage.alt)}" />` : ""}
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
     <link rel="stylesheet" href="/styles.css" />

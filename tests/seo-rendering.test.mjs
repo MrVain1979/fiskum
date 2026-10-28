@@ -17,6 +17,20 @@ const block = (text) => ({
 });
 const dataFor = (document, extra = {}) => ({ settings, document, ...extra });
 
+test("image-free indexes and undersized photos receive a full-size sharing card", () => {
+  for (const document of [{_type: 'page', title: 'Tjenester'}, {_type: 'page', title: 'Kran', image: {url: 'https://cdn.sanity.io/images/qgyys6fw/production/test-920x690.jpg'}}]) {
+    const data = dataFor(document);
+    const metadata = pageMetadata(data, '/tjenester/');
+    const image = metadata.openGraph.images[0];
+    assert.equal(image.width, 1200);
+    assert.equal(image.height, 630);
+    assert.ok(image.alt);
+    assert.equal(new URL(image.url).searchParams.get('w'), '1200');
+    assert.match(pageHtml(data, '/tjenester/'), /property="og:image:alt"/);
+    assert.match(pageHtml(data, '/tjenester/'), /name="twitter:image:alt"/);
+  }
+});
+
 test("blank SEO fields fall through real page text without changing the visible lead", () => {
   const document = {
     _type: "page", title: "Kranutleie", seoTitle: " \n ",
