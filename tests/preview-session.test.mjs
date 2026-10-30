@@ -193,7 +193,10 @@ test("actual preview route rejects forged Referer before fetching; authorized dr
     assert.equal(options.headers.Authorization, `Bearer ${config.token}`);
     return Response.json({ result: {
       settings: { companyName: "Test company" },
-      pages: [{ _id: "drafts.preview-test", _type: "page", slug: "preview-test", title: "Unpublished test title" }],
+      pages: [{ _id: "drafts.preview-test", _type: "page", slug: "preview-test", title: "Unpublished test title", body: [
+        { _type: "block", children: [{ text: "Draft reference", marks: ["target"] }], markDefs: [{ _type: "customLink", _key: "target", customLink: { type: "internal", internal: { _id: "drafts.target", _type: "page", slug: "draft-target" } } }] },
+        { _type: "block", listItem: "number", children: [{ text: "Draft list" }] },
+      ] }],
       services: [], references: [], newsPosts: [],
     } });
   };
@@ -207,6 +210,11 @@ test("actual preview route rejects forged Referer before fetching; authorized dr
     const html = await response.text();
     assert.match(html, /Unpublished test title/);
     assert.match(html, /Sanity draft preview/);
+    assert.equal((html.match(/name="robots"/g) || []).length, 1);
+    assert.match(html, /name="robots" content="noindex, nofollow"/);
+    assert.doesNotMatch(html, /rel="canonical"/);
+    assert.match(html, /<a href="\/draft-target\/">Draft reference<\/a>/);
+    assert.match(html, /<ol><li>Draft list<\/li><\/ol>/);
     assert.equal(html.includes(config.token), false);
     assert.equal(html.includes(session.value), false);
     assert.match(response.headers.get("cache-control"), /no-store/);

@@ -1,3 +1,5 @@
+import { isPreviewDeployment } from "./lib/site-config.mjs";
+
 const nextConfig = {
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
@@ -28,8 +30,10 @@ const nextConfig = {
             key: "Cache-Control",
             value: "public, max-age=0, must-revalidate",
           },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
         ],
       },
+      ...(isPreviewDeployment() ? [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }] }] : []),
     ];
   },
 };

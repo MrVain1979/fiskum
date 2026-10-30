@@ -2,11 +2,11 @@ import { access, cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { contentQuery } from "../lib/sanity-projections.mjs";
+import { isPreviewDeployment, productionOrigin } from "../lib/site-config.mjs";
 
 export { contentQuery };
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const productionOrigin = "https://www.fiskum-sveis.no";
 const distMirrors = ["dist", "apps/studio/dist"];
 const mirrors = ["", "apps/studio", ...distMirrors];
 const generatedRoots = [
@@ -181,37 +181,83 @@ function textFromBlocks(blocks = []) {
     .trim();
 }
 
+function richTextHref(value) {
+  const href = cleanText(value);
+  if (!href || /[\\\s\u0000-\u001f\u007f]/u.test(href)) return "";
+  try {
+    const decoded = decodeURIComponent(href);
+    if (/[\\\u0000-\u001f\u007f]/u.test(decoded) || decoded.startsWith("//")) return "";
+    if (href.startsWith("/") || href.startsWith("#")) return href;
+    const url = new URL(href);
+    return ["https:", "http:", "mailto:", "tel:"].includes(url.protocol) && !url.username && !url.password ? href : "";
+  } catch { return ""; }
+}
+
+function renderSpan(child, block) {
+  // Preserve whitespace between marked spans and around hard breaks.
+  let html = String(child?.text || "").replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, "")
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;").replaceAll("'", "&#039;").replace(/\r\n?|\n/g, "<br>");
+  const marks = Array.isArray(child?.marks) ? child.marks : [];
+  if (marks.includes("strong")) html = `<strong>${html}</strong>`;
+  if (marks.includes("em")) html = `<em>${html}</em>`;
+  if (marks.includes("code")) html = `<code>${html}</code>`;
+  for (const key of marks) {
+    const annotation = Array.isArray(block.markDefs) ? block.markDefs.find((definition) => definition?._key === key) : null;
+    if (!annotation) continue;
+    const link = annotation._type === "customLink" ? annotation.customLink : annotation._type === "link" ? annotation : null;
+    if (!link) continue;
+    const destination = link.type ? resolveLink(link) : link.href;
+    const href = richTextHref(destination);
+    if (!href || (link.type === "internal" && !href.startsWith("/"))) continue;
+    return `<a href="${escapeHtml(href)}"${link.openInNewTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>${html}</a>`;
+  }
+  return html;
+}
+
 function renderBlocks(blocks = []) {
   if (!Array.isArray(blocks)) return "";
-  return blocks
-    .map((block) => {
-      if (block?._type === "image" || block?._type === "imageWithAlt") {
-        const url = imageUrl(block);
-        if (!url) return "";
-        const caption = block.caption
-          ? `<figcaption>${escapeHtml(block.caption)}</figcaption>`
-          : "";
-        return `<figure>${renderImage(block, "", ' loading="lazy" decoding="async"')}${caption}</figure>`;
-      }
-      if (block?._type !== "block") return "";
-
-      const html = (block.children || [])
-        .map((child) => {
-          let value = escapeHtml(child.text || "").replace(/\r\n?|\n/g, "<br>");
-          const marks = child.marks || [];
-          if (marks.includes("strong")) value = `<strong>${value}</strong>`;
-          if (marks.includes("em")) value = `<em>${value}</em>`;
-          return value;
-        })
-        .join("");
-
-      if (!html) return "";
-      if (block.listItem) return `<li>${html}</li>`;
-      if (["h2", "h3", "h4"].includes(block.style || ""))
-        return `<${block.style}>${html}</${block.style}>`;
-      return `<p>${html}</p>`;
-    })
-    .join("");
+  let html = "";
+  const lists = [];
+  const closeList = () => {
+    const current = lists.pop();
+    if (current.itemOpen) html += "</li>";
+    html += `</${current.tag}>`;
+  };
+  const closeLists = () => { while (lists.length) closeList(); };
+  for (const block of blocks) {
+    if (block?._type === "image" || block?._type === "imageWithAlt") {
+      closeLists();
+      if (!imageUrl(block)) continue;
+      const caption = block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : "";
+      html += `<figure>${renderImage(block, "", ' loading="lazy" decoding="async"')}${caption}</figure>`;
+      continue;
+    }
+    if (block?._type !== "block") continue;
+    const children = Array.isArray(block.children) ? block.children : [];
+    if (!cleanText(children.map((child) => child?.text || "").join(""))) continue;
+    const text = children.map((child) => renderSpan(child, block)).join("");
+    if (!text) continue;
+    if (["bullet", "number"].includes(block.listItem)) {
+      const tag = block.listItem === "number" ? "ol" : "ul";
+      const requestedLevel = Number.isInteger(block.level) ? block.level : 1;
+      const level = Math.max(1, Math.min(requestedLevel, lists.length + 1, 6));
+      while (lists.length > level) closeList();
+      if (lists.length === level && lists.at(-1).tag !== tag) closeList();
+      if (lists.length < level) {
+        html += `<${tag}>`;
+        lists.push({ tag, itemOpen: false });
+      } else if (lists.at(-1).itemOpen) html += "</li>";
+      html += `<li>${text}`;
+      lists.at(-1).itemOpen = true;
+      continue;
+    }
+    closeLists();
+    const tag = ["h2", "h3", "h4"].includes(block.style || "") ? block.style : "p";
+    html += `<${tag}>${text}</${tag}>`;
+  }
+  closeLists();
+  return html;
 }
 
 function renderButtons(buttons = []) {
@@ -447,7 +493,8 @@ function metadataText(...values) {
 
 // Keep metadata fallback separate from the visible lead: an intentionally blank
 // lead must not suddenly add body text to the page when its metadata is fixed.
-export function pageMetadata(data, path) {
+export function pageMetadata(data, path, { preview = false } = {}) {
+  preview ||= isPreviewDeployment();
   const doc = data.document;
   const title = metadataText(pageMetaTitle(doc), data.settings?.siteTitle);
   const description = metadataText(
@@ -476,7 +523,7 @@ export function pageMetadata(data, path) {
   return {
     title: title ? [title, companyName].filter(Boolean).join(" - ") : "",
     description,
-    alternates: { canonical: canonicalUrl },
+    alternates: { canonical: preview ? undefined : canonicalUrl },
     openGraph: {
       title: metadataText(doc?.ogTitle, title),
       description: metadataText(doc?.ogDescription, description),
@@ -484,7 +531,7 @@ export function pageMetadata(data, path) {
       images: image ? [image] : [],
     },
     twitter: { card: "summary_large_image", images: image ? [{url: image.url, alt: image.alt}] : [] },
-    ...(doc?.seoNoIndex ? { robots: { index: false, follow: true } } : {}),
+    ...(preview ? { robots: { index: false, follow: false } } : doc?.seoNoIndex ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
@@ -666,8 +713,8 @@ export function documentBody(data, path) {
   return `${renderHeader(data.settings, data.navbar)}${doc._type === "homePage" ? renderHome(data) : renderPage(data, path)}${renderFooter(data.settings, data.footer, data.navbar)}`;
 }
 
-export function pageHtml(data, path) {
-  const metadata = pageMetadata(data, path);
+export function pageHtml(data, path, options) {
+  const metadata = pageMetadata(data, path, options);
   const seoImage = metadata.openGraph.images[0];
   const canonicalUrl = metadata.alternates.canonical;
   const body = documentBody(data, path);
@@ -678,14 +725,14 @@ export function pageHtml(data, path) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(metadata.title)}</title>
     <meta name="description" content="${escapeHtml(metadata.description)}" />
-    ${metadata.robots?.index === false ? '<meta name="robots" content="noindex, follow" />' : ""}
+    ${metadata.robots?.index === false ? `<meta name="robots" content="noindex, ${metadata.robots.follow ? "follow" : "nofollow"}" />` : ""}
     <meta property="og:title" content="${escapeHtml(metadata.openGraph.title)}" />
     <meta property="og:description" content="${escapeHtml(metadata.openGraph.description)}" />
-    <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+    <meta property="og:url" content="${escapeHtml(metadata.openGraph.url)}" />
     ${seoImage ? `<meta property="og:image" content="${escapeHtml(seoImage.url)}" /><meta property="og:image:width" content="1200" /><meta property="og:image:height" content="630" /><meta property="og:image:alt" content="${escapeHtml(seoImage.alt)}" />` : ""}
     ${seoImage ? `<meta name="twitter:card" content="summary_large_image" /><meta name="twitter:image" content="${escapeHtml(seoImage.url)}" /><meta name="twitter:image:alt" content="${escapeHtml(seoImage.alt)}" />` : ""}
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
+    ${canonicalUrl ? `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />` : ""}
     <link rel="stylesheet" href="/styles.css" />
     <script src="/script.js" defer></script>
   </head>

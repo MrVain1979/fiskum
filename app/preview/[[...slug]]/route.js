@@ -27,7 +27,6 @@ function cleanDocumentId(value = "") {
 
 function previewShell(html) {
   return html
-    .replace("<head>", '<head><meta name="robots" content="noindex,nofollow" />')
     .replace(
       "</body>",
       `<div style="position:fixed;right:16px;bottom:16px;z-index:99999;background:#111;color:#fff;font:700 12px/1.2 Arial,sans-serif;letter-spacing:.02em;padding:10px 12px;border-radius:999px;box-shadow:0 10px 28px rgba(0,0,0,.22)">Sanity draft preview</div></body>`,
@@ -87,5 +86,5 @@ export async function GET(request, { params }) {
     );
   }
 
-  return htmlResponse(previewShell(pageHtml({ ...data, document }, routeFor(document))));
+  return htmlResponse(previewShell(pageHtml({ ...data, document }, routeFor(document), { preview: true })));
 }

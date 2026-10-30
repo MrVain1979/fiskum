@@ -80,6 +80,24 @@ test("targeted GROQ and real renderer preserve the existing complete-query outpu
   assert.equal(alias.html, documentBody({ ...full, document: full.pages.find((item) => item.slug === "aktuelt") }, "/category/aktuelt/"));
 });
 
+test("Portable Text internal link projections follow rename and unpublish through existing targeted cache", async () => {
+  const state = harness([
+    ...fixture(),
+    doc("rich-links", "page", "rich-links", { body: [{
+      _type: "block", children: [{ _type: "span", text: "Marked target link", marks: ["target-link"] }],
+      markDefs: [{ _key: "target-link", _type: "customLink", customLink: link("service-a") }],
+    }] }),
+  ]);
+  assert.match((await state.page("/rich-links/")).html, /<a href="\/stalbygg\/">Marked target link<\/a>/);
+  await state.mutate("service-a", { ...state.get("service-a"), slug: { current: "nytt-stalbygg" } });
+  assert.match((await state.page("/rich-links/")).html, /<a href="\/nytt-stalbygg\/">Marked target link<\/a>/);
+  state.set("drafts.service-a", { ...state.get("service-a"), _id: "drafts.service-a" });
+  await state.mutate("service-a", null);
+  const html = (await state.page("/rich-links/")).html;
+  assert.match(html, /<p>Marked target link<\/p>/);
+  assert.doesNotMatch(html, /<a[^>]+>Marked target link<\/a>/);
+});
+
 test("service text updates its detail and actual lists without invalidating unrelated documents or route index", async () => {
   const state = harness();
   await Promise.all([state.page("/stalbygg/"), state.page("/tjenester/"), state.page("/"), state.page("/kontakt-oss/"), fetchRouteIndex(state.fetcher)]);

@@ -48,3 +48,28 @@ ryddes ved lukking og av Sanitys vanlige opprydding for utløpte preview-secrets
 - Før godkjenning må en faktisk Studio-draft vises i preview, være skjult ved
   et separat offentlig besøk, og publisering/tilbakestilling må kontrolleres.
   Lokale tester eller en gyldig økt alene er ingen slik godkjenning.
+
+## Metadata og innhold i preview
+
+Den autoriserte preview-ruten bruker samme serverrenderer som offentlig innhold,
+med eksplisitt preview-valg: én noindex/nofollow-direktiv og ingen canonical.
+Offentlig produksjon beholder egen canonical og gjeldende indeksering. Det
+eksisterende session-håndtrykket, cookieomfanget og cache-/webhookmodellen er
+uendret.
+
+Vercel preview/development gir noindex-responshode på alle stier, blokkerende
+robots og tom sitemap uten CMS-oppslag. Produksjons-Studio har noindex-responshode
+og er tillatt crawlet slik at denne beskjeden kan leses.
+
+Portable Text-lenker bruker annotasjonens faktiske mål og publiserte referanser i
+offentlige svar. Referanser projiseres også i utkastspørringen for autorisert
+preview. Manglende eller ugyldige mål rendrer teksten uten en falsk lenke.
+Nummererte lister, punktlister og innrykk grupperes som ol/ul/li. Vanlig tekst,
+markerte tekstsegmenter, avsnitt og harde linjeskift beholder eksisterende
+innhold og typografi.
+
+Dette er en avgrenset retting. Native Presentation, komplette globale
+SEO-standarder, seksjonskatalog og øvrige åpne punkter etter manual 3.13 er ikke
+ferdig kontrollert. Katalogtypen subscribeNewsletter mangler fortsatt en
+eksisterende godkjent frontendvisning; den er verken skjult eller erstattet med
+en ny generisk komponent.
