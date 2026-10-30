@@ -52,11 +52,12 @@ export default defineConfig({
     newDocumentOptions: (prev, { creationContext }) => {
       const { type } = creationContext;
       if (type === "global") return [];
-      return prev;
+      return prev.filter((option) => option.templateId !== 'formSubmission');
     },
+    actions: (actions, context) => context.schemaType === 'formSubmission' ? actions.filter((action) => action.action === 'delete') : actions,
   },
   schema: {
     types: schemaTypes,
-    templates: createPageTemplate(),
+    templates: createPageTemplate().filter((template) => template.schemaType !== 'formSubmission'),
   },
 });

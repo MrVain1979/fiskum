@@ -11,7 +11,8 @@ import { projectReference } from "./reference";
 import { redirect } from "./redirect";
 import { service } from "./service";
 import { settings } from "./settings";
+import formSubmission from './formSubmission';
 
 export const singletons = [homePage, blogIndex, settings, footer, navbar];
 
-export const documents = [service, projectReference, newsPost, redirect, blog, page, faq, author, ...singletons];
+export const documents = [formSubmission, service, projectReference, newsPost, redirect, blog, page, faq, author, ...singletons];

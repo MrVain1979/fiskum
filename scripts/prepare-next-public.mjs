@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -32,7 +32,10 @@ await mkdir(publicRoot, { recursive: true });
 await rm(join(publicRoot, "studio"), { recursive: true, force: true });
 
 await copyIfExists(join(root, "assets"), join(publicRoot, "assets"));
-await copyIfExists(join(root, "apps", "studio", "studio"), join(publicRoot, "studio"));
+// Compile the current schema for production; old tracked Studio is dev fallback.
+let studioSource = join(root, '.tmp-studio-output');
+try { await access(studioSource); } catch { studioSource = join(root, 'apps', 'studio', 'studio'); }
+await copyIfExists(studioSource, join(publicRoot, "studio"));
 await fixStudioAssetPaths();
 await copyIfExists(join(root, "styles.css"), join(publicRoot, "styles.css"));
 await copyIfExists(join(root, "script.js"), join(publicRoot, "script.js"));

@@ -16,6 +16,7 @@ function initInteractions() {
   const contactForm = document.querySelector(".contact-form");
   const query = new URLSearchParams(window.location.search);
   const formStatus = contactForm?.querySelector(".form-status");
+  let pendingSubmission;
   const showFormStatus = (message, isError = false) => {
     if (!formStatus) return;
     formStatus.textContent = message;
@@ -25,7 +26,7 @@ function initInteractions() {
   };
 
   if (contactForm && query.get("sendt") === "1") {
-    showFormStatus("Takk! Forespørselen er sendt. Vi tar kontakt så snart vi kan.");
+    showFormStatus("Takk! Forespørselen er mottatt. Vi tar kontakt så snart vi kan.");
     window.history.replaceState({}, "", window.location.pathname);
   }
 
@@ -33,7 +34,7 @@ function initInteractions() {
     event.preventDefault();
     const button = contactForm.querySelector('button[type="submit"]');
     const originalLabel = button?.textContent || "Send forespørsel";
-    const endpoint = contactForm.action.replace("formsubmit.co/", "formsubmit.co/ajax/");
+    const endpoint = contactForm.action;
 
     if (button) {
       button.disabled = true;
@@ -42,21 +43,26 @@ function initInteractions() {
     if (formStatus) formStatus.hidden = true;
 
     try {
+      const payload = new FormData(contactForm);
+      const snapshot = JSON.stringify([...payload]);
+      if (!pendingSubmission || pendingSubmission.snapshot !== snapshot) pendingSubmission = {snapshot, id: crypto.randomUUID()};
+      payload.set('submissionId', pendingSubmission.id);
       const response = await fetch(endpoint, {
         method: "POST",
-        body: new FormData(contactForm),
+        body: payload,
         headers: { Accept: "application/json" },
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok || result.success === "false" || result.success === false) {
-        throw new Error("Form submission failed");
+      if (!response.ok || result.success !== true) {
+        throw new Error(result.message || "Skjemaet kunne ikke sendes akkurat nå.");
       }
 
       contactForm.reset();
-      showFormStatus("Takk! Forespørselen er sendt. Vi tar kontakt så snart vi kan.");
-    } catch {
+      pendingSubmission = null;
+      showFormStatus("Takk! Forespørselen er mottatt. Vi tar kontakt så snart vi kan.");
+    } catch (error) {
       showFormStatus(
-        "Beklager, skjemaet kunne ikke sendes akkurat nå. Prøv igjen, eller send e-post til post@fiskum-sveis.no.",
+        error.message || "Skjemaet kunne ikke sendes akkurat nå. Prøv igjen, eller send e-post til post@fiskum-sveis.no.",
         true,
       );
     } finally {

@@ -1,5 +1,6 @@
 {
-  "buildCommand": "node scripts/prepare-next-public.mjs && next build",
+  "installCommand": "pnpm install --frozen-lockfile && pnpm --dir sanity-studio install --ignore-workspace --frozen-lockfile",
+  "buildCommand": "pnpm run build",
   "headers": [
     {
       "source": "/studio/(.*)",
