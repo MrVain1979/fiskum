@@ -34,7 +34,7 @@ function transport(options = {}) {
       const document = mutation.createIfNotExists;
       const existing = documents.has(document._id);
       if (!existing) documents.set(document._id, document);
-      return Response.json({ transactionId: 'test-tx', results: [{ id: document._id, operation: existing ? 'none' : 'create' }] });
+      return Response.json({ transactionId: 'test-tx', results: [{ id: document._id, operation: existing ? options.replayOperation || 'none' : 'create' }] });
     }
     const patch = mutation.patch;
     assert.ok(patch);
@@ -114,6 +114,19 @@ test('concurrent idempotent replays send only one email', async () => {
   assert.ok(results.every((result) => result.status === 200));
   assert.equal(io.documents.size, 1);
   assert.equal(io.calls.filter(({ url }) => url.includes('formsubmit.co')).length, 1);
+});
+
+test('real Sanity update acknowledgement for createIfNotExists replay succeeds without overwriting content or resending email', async () => {
+  const io = transport({ replayOperation: 'update' });
+  const first = await handleFormRequest(request(), config, io);
+  const original = structuredClone(io.documents.get(`formSubmission.${ID}`));
+  const replay = await handleFormRequest(request({ body: JSON.stringify(data({ name: 'Changed replay name', email: 'changed@example.test', message: 'Changed replay body' })) }), config, io);
+  assert.equal(first.status, 200);
+  assert.equal(replay.status, 200);
+  assert.equal((await replay.json()).success, true);
+  assert.deepEqual(io.documents.get(`formSubmission.${ID}`), original);
+  assert.equal(io.calls.filter(({ url }) => url.includes('formsubmit.co')).length, 1);
+  assert.equal(io.calls.length, 4, 'the replay may only perform its createIfNotExists mutation');
 });
 
 test('forged, missing and null Origin are forbidden without I/O', async () => {
