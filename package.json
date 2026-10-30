@@ -1,7 +1,9 @@
 {
   "type": "module",
   "scripts": {
-    "build": "node scripts/prepare-next-public.mjs && next build",
+    "test": "node --test tests/*.test.mjs",
+    "test:forms": "node --test tests/form-inbox*.test.mjs",
+    "build": "node scripts/build-studio.mjs && node scripts/prepare-next-public.mjs && next build",
     "build:static": "node scripts/build-static.mjs"
   },
   "dependencies": {

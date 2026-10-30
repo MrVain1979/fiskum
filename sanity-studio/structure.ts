@@ -90,6 +90,7 @@ export const structure = (
             ]),
         ),
       S.divider(),
+      S.documentTypeListItem('formSubmission').title('Henvendelser').child(S.documentTypeList('formSubmission').title('Henvendelser').defaultOrdering([{field: 'receivedAt', direction: 'desc'}])),
       createList({ S, type: "faq", title: "FAQ", icon: FileText }),
       createList({ S, type: "blog", title: "Gamle artikler", icon: FolderKanban }),
     ]);
