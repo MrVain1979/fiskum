@@ -10,28 +10,33 @@ const socialLinks = defineField({
   fields: [
     defineField({
       name: "linkedin",
+      validation: (r) => r.uri({ scheme: ["https", "http"] }),
       title: "LinkedIn",
-      type: "string",
+      type: "url",
     }),
     defineField({
       name: "facebook",
+      validation: (r) => r.uri({ scheme: ["https", "http"] }),
       title: "Facebook",
-      type: "string",
+      type: "url",
     }),
     defineField({
       name: "twitter",
+      validation: (r) => r.uri({ scheme: ["https", "http"] }),
       title: "X / Twitter",
-      type: "string",
+      type: "url",
     }),
     defineField({
       name: "instagram",
+      validation: (r) => r.uri({ scheme: ["https", "http"] }),
       title: "Instagram",
-      type: "string",
+      type: "url",
     }),
     defineField({
       name: "youtube",
+      validation: (r) => r.uri({ scheme: ["https", "http"] }),
       title: "YouTube",
-      type: "string",
+      type: "url",
     }),
   ],
 });
@@ -43,6 +48,18 @@ export const settings = defineType({
   description: "Global informasjon som brukes flere steder på nettsiden",
   icon: CogIcon,
   fields: [
+    defineField({
+      name: "siteName",
+      title: "Nettstedsnavn",
+      type: "string",
+      validation: (r) => r.required(),
+    }),
+    defineField({
+      name: "defaultSeo",
+      title: "Globale SEO-standarder",
+      type: "seoDefaults",
+      validation: (r) => r.required(),
+    }),
     defineField({
       name: "label",
       type: "string",
@@ -59,17 +76,19 @@ export const settings = defineType({
       name: "siteTitle",
       type: "string",
       title: "Standard sidetittel",
-      validation: (rule) => rule.required(),
+      hidden: true,
+      readOnly: true,
     }),
     defineField({
       name: "siteDescription",
       type: "text",
       title: "Standard SEO-beskrivelse",
-      validation: (rule) => rule.required().min(50).max(160),
+      hidden: true,
+      readOnly: true,
     }),
     defineField({
       name: "logo",
-      type: "image",
+      type: "imageWithAlt",
       title: "Logo",
       options: {
         hotspot: true,
@@ -100,7 +119,11 @@ export const settings = defineType({
       title: "Adresse",
       fields: [
         defineField({ name: "street", title: "Gateadresse", type: "string" }),
-        defineField({ name: "postalCode", title: "Postnummer", type: "string" }),
+        defineField({
+          name: "postalCode",
+          title: "Postnummer",
+          type: "string",
+        }),
         defineField({ name: "city", title: "Poststed", type: "string" }),
         defineField({ name: "country", title: "Land", type: "string" }),
       ],

@@ -1,6 +1,6 @@
 import { CogIcon } from "@sanity/icons";
 import { defineField, defineType } from "sanity";
-import { preview } from "sanity-plugin-icon-picker";
+import { preview } from "../../components/feather-icon-picker";
 
 import { iconField } from "../common";
 
@@ -59,7 +59,12 @@ export const service = defineType({
       type: "object",
       fields: [
         defineField({ name: "title", title: "SEO-tittel", type: "string" }),
-        defineField({ name: "description", title: "SEO-beskrivelse", type: "text", rows: 3 }),
+        defineField({
+          name: "description",
+          title: "SEO-beskrivelse",
+          type: "text",
+          rows: 3,
+        }),
       ],
     }),
   ],

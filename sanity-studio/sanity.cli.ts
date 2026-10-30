@@ -22,5 +22,11 @@ export default defineCliConfig({
     host && host !== "main"
       ? `${host}-${productionHostName}`
       : productionHostName,
-  autoUpdates: false,
+  deployment: { autoUpdates: false, appId: "cs5kc5ij1sbip6krn8h7uhq2" },
+  typegen: {
+    path: "../lib/sanity-projections.ts",
+    schema: "./schema.json",
+    generates: "../sanity.types.ts",
+    overloadClientMethods: true,
+  },
 });

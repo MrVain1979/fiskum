@@ -1,16 +1,10 @@
 import { fetchRouteIndex } from "../lib/sanity-content.mjs";
-import { documentPath } from "../lib/sanity-cache.mjs";
-import { isPreviewDeployment, productionOrigin } from "../lib/site-config.mjs";
+import { isPreviewDeployment } from "../lib/site-config.mjs";
+import { sitemapEntries } from "../lib/sitemap.mjs";
 
 export const dynamic = "force-static";
 
 export default async function sitemap() {
   if (isPreviewDeployment()) return [];
-  return (await fetchRouteIndex())
-    .filter((document) => !document.seoNoIndex)
-    .map((document) => ({
-      url: new URL(documentPath(document), productionOrigin).toString(),
-      changeFrequency: document._type === "newsPost" ? "monthly" : "yearly",
-      priority: document._type === "homePage" ? 1 : 0.7,
-    }));
+  return sitemapEntries(await fetchRouteIndex());
 }

@@ -2484,3 +2484,23 @@ body.gallery-lightbox-open {
     gap: 14px 18px;
   }
 }
+
+/* Controlled CMS settings replace the original section padding; omitted legacy values retain it. */
+.cms-background-white { background:#fff; color:var(--ink); }
+.cms-background-light { background:var(--bg); color:var(--ink); }
+.cms-background-dark { background:var(--ink); color:#fff; }
+.cms-background-dark h2,.cms-background-dark h3,.cms-background-dark p { color:inherit; }
+.cms-rich-text > * { margin:0; }
+.cms-rich-text > h2 { margin-top:22px; }
+.cms-rich-text > h3 { margin-top:16px; }
+.content-stack h5,.content-stack h6 { font:inherit; font-weight:700; }
+.child-pages { display:grid;gap:12px;margin-top:32px; }
+.child-pages a { text-decoration:underline;text-underline-offset:3px; }
+.consent-label { display:flex;align-items:flex-start;gap:12px; }
+.consent-label input { width:auto;margin-top:5px; }
+.preview-status { position:fixed;z-index:1000;bottom:12px;left:12px;background:#142231;color:white;padding:10px 14px;border-radius:8px;font-size:14px; }
+.preview-status a { text-decoration:underline;margin-left:10px; }
+
+/* Let the native editing overlay reach the active keyed image beneath the gradient. */
+.cms-preview .hero-media::after,.cms-preview .hero-copy{pointer-events:none}
+.cms-preview .hero-copy>*{pointer-events:auto}

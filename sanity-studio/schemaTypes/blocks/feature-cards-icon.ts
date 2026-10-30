@@ -1,7 +1,7 @@
 import { LayoutGrid } from "lucide-react";
 import { defineField } from "sanity";
 import { defineType } from "sanity";
-import { preview } from "sanity-plugin-icon-picker";
+import { preview } from "../../components/feather-icon-picker";
 
 import { iconField } from "../common";
 import { customRichText } from "../definitions/rich-text";

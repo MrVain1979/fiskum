@@ -53,7 +53,7 @@ const navbarColumnLink = defineField({
   title: "Navigation Column Link",
   description: "A link within a navigation column",
   fields: [
-    iconField,
+    { ...iconField, hidden: true, readOnly: true },
     defineField({
       name: "name",
       type: "string",
@@ -62,6 +62,8 @@ const navbarColumnLink = defineField({
     }),
     defineField({
       name: "description",
+      hidden: true,
+      readOnly: true,
       type: "string",
       title: "Description",
       description: "The description for this navigation link",
@@ -106,9 +108,9 @@ const navbarColumn = defineField({
     defineField({
       name: "title",
       type: "string",
-      title: "Column Title",
+      title: "Navn på lenkegruppen i Studio",
       description:
-        "The heading text displayed above this group of navigation links",
+        "Kun organisering i Studio. Lenkene vises i nettstedets eksisterende flate meny.",
     }),
     defineField({
       name: "links",
@@ -157,7 +159,7 @@ export const navbar = defineType({
         "Build your navigation menu using columns and links. Add either a column of links or individual links.",
       of: [navbarColumn, navbarLink],
     }),
-    buttonsField,
+    { ...buttonsField, hidden: true, readOnly: true },
   ],
   preview: {
     select: {

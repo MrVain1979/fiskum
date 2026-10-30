@@ -1,4 +1,4 @@
-import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { IncomingMessage, ServerResponse } from "node:http";
 
 export interface FormDefinition {
   title: string;
@@ -8,6 +8,10 @@ export interface FormDefinition {
   successPath: string;
   allowedFields: string[];
   requiredFields: string[];
+  /** Exact required values, such as explicit consent; validated before any write. */
+  requiredValues?: Record<string, string>;
+  /** Defaults to the existing notification behavior; false stores only in the private inbox. */
+  forwardEmail?: boolean;
   emailField?: string;
   nameFields?: string[];
 }
@@ -34,5 +38,14 @@ export interface FormInboxDependencies {
 }
 
 export const MAX_BODY_BYTES: number;
-export function handleFormRequest(request: Request, config: FormInboxConfig, dependencies?: FormInboxDependencies): Promise<Response>;
-export function handleNodeFormRequest(req: IncomingMessage & { body?: unknown }, res: ServerResponse, config: FormInboxConfig, dependencies?: FormInboxDependencies): Promise<void>;
+export function handleFormRequest(
+  request: Request,
+  config: FormInboxConfig,
+  dependencies?: FormInboxDependencies,
+): Promise<Response>;
+export function handleNodeFormRequest(
+  req: IncomingMessage & { body?: unknown },
+  res: ServerResponse,
+  config: FormInboxConfig,
+  dependencies?: FormInboxDependencies,
+): Promise<void>;

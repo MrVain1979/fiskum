@@ -49,12 +49,32 @@ const richTextMembers = [
       hotspot: true,
     },
     fields: [
+      defineField({ name: "alt", title: "Alternativ tekst", type: "string" }),
+      defineField({
+        name: "decorative",
+        title: "Kun dekorativt bilde",
+        type: "boolean",
+        initialValue: false,
+      }),
       defineField({
         name: "caption",
         type: "string",
         title: "Caption Text",
       }),
     ],
+    validation: (rule) =>
+      rule.custom((value, context) => {
+        if (!context.path?.includes("sections")) return true;
+        const image = value as
+          | { asset?: { _ref?: string }; alt?: string; decorative?: boolean }
+          | undefined;
+        return (
+          !image?.asset?._ref ||
+          image.decorative ||
+          Boolean(image.alt?.trim()) ||
+          "Skriv alternativ tekst eller marker bildet som dekorativt."
+        );
+      }),
   }),
 ];
 

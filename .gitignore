@@ -16,3 +16,6 @@ sanity-studio/.config/
 .home-vercel/
 .appdata-vercel/
 .localappdata-vercel/
+*.tsbuildinfo
+.env*
+!.env.example

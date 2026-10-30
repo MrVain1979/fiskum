@@ -23,7 +23,7 @@ const imageLinkCard = defineField({
     defineField({
       name: "image",
       title: "Card Image",
-      type: "image",
+      type: "imageWithAlt",
       description: "Add an image or illustration for this card",
     }),
     defineField({
