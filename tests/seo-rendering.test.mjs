@@ -75,6 +75,18 @@ test("noindex and canonical agree across the Next metadata and static/preview re
   assert.equal(pageMetadata(dataFor({ _type: "page", seoNoIndex: false }), "/").robots, undefined);
 });
 
+test("authorized preview metadata has one noindex directive without canonical while published metadata stays intact", () => {
+  const data = dataFor({ _type: "page", title: "Kontroll", seoNoIndex: false });
+  const metadata = pageMetadata(data, "/kontroll/", { preview: true });
+  assert.equal(metadata.alternates.canonical, undefined);
+  assert.deepEqual(metadata.robots, { index: false, follow: false });
+  const html = pageHtml(data, "/kontroll/", { preview: true });
+  assert.equal((html.match(/name="robots"/g) || []).length, 1);
+  assert.match(html, /name="robots" content="noindex, nofollow"/);
+  assert.doesNotMatch(html, /rel="canonical"/);
+  assert.match(pageHtml(data, "/kontroll/"), /rel="canonical" href="https:\/\/www\.fiskum-sveis\.no\/kontroll\/"/);
+});
+
 test("listing card headings are H2 while home section cards stay H3", () => {
   const services = [{ _type: "service", slug: "stalbygg", title: "Stålbygg" }];
   const references = [{ _type: "projectReference", slug: "bro", title: "En bro" }];
