@@ -117,6 +117,8 @@ export const footer = defineType({
     }),
     defineField({
       name: "columns",
+      hidden: true,
+      readOnly: true,
       type: "array",
       title: "Columns",
       description: "Columns for the footer",

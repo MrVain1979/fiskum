@@ -1,0 +1,16 @@
+// Published business content and referenced assets only; use the existing signed webhook.
+// Keep before/after for deletion, unpublish, old routes and canonical-only changes.
+{
+  "_id": coalesce(after()._id, before()._id),
+  "_type": coalesce(after()._type, before()._type),
+  "before": before(){
+    _id, _type, "slug": slug.current, publishedAt, seoNoIndex, from,
+    previousPaths, "canonical": seo.canonical,
+    "parentId": parent._ref, title, navigationTitle
+  },
+  "after": after(){
+    _id, _type, "slug": slug.current, publishedAt, seoNoIndex, from,
+    previousPaths, "canonical": seo.canonical,
+    "parentId": parent._ref, title, navigationTitle
+  }
+}

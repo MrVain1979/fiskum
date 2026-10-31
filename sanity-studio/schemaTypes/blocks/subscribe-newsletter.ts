@@ -5,22 +5,24 @@ import { customRichText } from "../definitions/rich-text";
 
 export const subscribeNewsletter = defineType({
   name: "subscribeNewsletter",
-  title: "Subscribe Newsletter",
+  title: "Forespørsel om nyhetsbrev",
   type: "object",
   icon: Mail,
+  description:
+    "Bruker nettstedets eksisterende sikre innboks. Registrerer bare en uttrykkelig forespørsel hos bedriften; melder ingen automatisk på en ekstern e-postliste.",
   fields: [
     defineField({
       name: "title",
-      title: "Title",
+      title: "Tittel",
       type: "string",
     }),
     customRichText(["block"], {
       name: "subTitle",
-      title: "SubTitle",
+      title: "Innledning",
     }),
     customRichText(["block"], {
       name: "helperText",
-      title: "Helper Text",
+      title: "Hjelpetekst",
     }),
   ],
   preview: {

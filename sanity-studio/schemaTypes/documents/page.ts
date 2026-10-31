@@ -1,7 +1,6 @@
 import { DocumentIcon } from "@sanity/icons";
 import { defineField, defineType } from "sanity";
 
-import { PathnameFieldComponent } from "../../components/slug-field-component";
 import { GROUP, GROUPS } from "../../utils/constant";
 import { ogFields } from "../../utils/og-fields";
 import { seoFields } from "../../utils/seo-fields";
@@ -55,9 +54,6 @@ export const page = defineType({
       description:
         "The web address for this page (for example, '/about-us' would create a page at yourdomain.com/about-us)",
       group: GROUP.MAIN_CONTENT,
-      components: {
-        field: PathnameFieldComponent,
-      },
       options: {
         source: "title",
         slugify: createSlug,

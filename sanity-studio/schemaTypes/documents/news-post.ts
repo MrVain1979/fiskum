@@ -29,6 +29,7 @@ export const newsPost = defineType({
       name: "publishedAt",
       title: "Publiseringsdato",
       type: "datetime",
+      validation: (r) => r.required(),
     }),
     defineField({
       name: "excerpt",

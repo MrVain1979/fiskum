@@ -1,102 +1,157 @@
 import { defineField, defineType } from "sanity";
-
-import { createRadioListLayout, isValidUrl } from "../../utils/helper";
-
-const allLinkableTypes = [
-  { type: "blog" },
-  { type: "blogIndex" },
-  { type: "newsPost" },
-  { type: "page" },
-  { type: "projectReference" },
-  { type: "service" },
-];
-
-export const customUrl = defineType({
-  name: "customUrl",
+const types = ["homePage", "page", "service", "projectReference", "newsPost"];
+export const linkTarget = defineType({
+  name: "linkTarget",
+  title: "Lenkemål",
   type: "object",
-  description:
-    "Configure a link that can point to either an internal page or external website",
   fields: [
     defineField({
-      name: "type",
+      name: "kind",
+      title: "Lenketype",
       type: "string",
-      description:
-        "Choose whether this link points to another page on your site (internal) or to a different website (external)",
-      options: createRadioListLayout(["internal", "external"]),
-      initialValue: () => "external",
-      validation: (Rule) => Rule.required(),
+      options: {
+        list: [
+          { title: "Intern side", value: "internal" },
+          { title: "Ekstern nettside", value: "external" },
+          { title: "E-post", value: "email" },
+          { title: "Telefon", value: "phone" },
+          { title: "Anker på denne siden", value: "anchor" },
+          { title: "Fil/PDF", value: "file" },
+        ],
+      },
     }),
+    defineField({
+      name: "document",
+      title: "Velg side",
+      type: "reference",
+      to: types.map((type) => ({ type })),
+      hidden: ({ parent }) => parent?.kind !== "internal",
+    }),
+    defineField({
+      name: "url",
+      title: "Ekstern adresse",
+      type: "url",
+      hidden: ({ parent }) => parent?.kind !== "external",
+      validation: (r) => r.uri({ scheme: ["https", "http"] }),
+    }),
+    defineField({
+      name: "email",
+      title: "E-post",
+      type: "string",
+      validation: (r) => r.email(),
+      hidden: ({ parent }) => parent?.kind !== "email",
+    }),
+    defineField({
+      name: "phone",
+      title: "Telefon",
+      type: "string",
+      hidden: ({ parent }) => parent?.kind !== "phone",
+    }),
+    defineField({
+      name: "anchor",
+      title: "Anker-ID uten #",
+      type: "string",
+      hidden: ({ parent }) => parent?.kind !== "anchor",
+      validation: (r) =>
+        r.regex(/^[A-Za-z][A-Za-z0-9_-]*$/, { name: "gyldig anker-ID" }),
+    }),
+    defineField({
+      name: "file",
+      title: "Fil",
+      type: "file",
+      hidden: ({ parent }) => parent?.kind !== "file",
+    }),
+  ],
+  validation: (r) =>
+    r.custom((value) => {
+      if (
+        !value ||
+        !Object.entries(value).some(
+          ([k, v]) => !["_type", "_key"].includes(k) && Boolean(v),
+        )
+      )
+        return true;
+      const obj = value as {
+        kind?: string;
+        document?: { _ref?: string };
+        url?: string;
+        email?: string;
+        phone?: string;
+        anchor?: string;
+        file?: { asset?: { _ref?: string } };
+      };
+      const valid =
+        obj.kind === "internal"
+          ? obj.document?._ref
+          : obj.kind === "external"
+            ? obj.url
+            : obj.kind === "email"
+              ? obj.email
+              : obj.kind === "phone"
+                ? /^\+?[0-9]{5,15}$/.test(
+                    (obj.phone ?? "").replace(/[\s()-]/g, ""),
+                  )
+                : obj.kind === "anchor"
+                  ? obj.anchor
+                  : obj.kind === "file"
+                    ? obj.file?.asset?._ref
+                    : false;
+      return Boolean(valid) || "Velg lenketype og et gyldig mål.";
+    }),
+});
+export const customUrl = defineType({
+  name: "customUrl",
+  title: "Lenke",
+  type: "object",
+  fields: [
+    defineField({ name: "target", title: "Lenkemål", type: "linkTarget" }),
     defineField({
       name: "openInNewTab",
-      title: "Open in new tab",
+      hidden: ({ document }) => document?._type === "redirect",
+      title: "Åpne i ny fane",
       type: "boolean",
-      description:
-        "When enabled, clicking this link will open the destination in a new browser tab instead of navigating away from the current page",
-      initialValue: () => false,
+      initialValue: false,
     }),
     defineField({
-      name: "external",
+      name: "type",
+      title: "Tidligere lenketype",
       type: "string",
-      title: "URL",
-      description:
-        "Enter either a full web address (URL) starting with https:// for external sites, or a relative path like /about for internal pages",
-      hidden: ({ parent }) => parent?.type !== "external",
-      validation: (Rule) => [
-        Rule.custom((value, { parent }) => {
-          const type = (parent as { type?: string })?.type;
-          if (type === "external") {
-            if (!value) return "URL can't be empty";
-            const isValid = isValidUrl(value);
-            if (!isValid) return "Invalid URL";
-          }
-          return true;
-        }),
-      ],
-    }),
-    defineField({
-      name: "href",
-      type: "string",
-      description:
-        "Technical field used internally to store the complete URL - you don't need to modify this",
-      initialValue: () => "#",
       hidden: true,
       readOnly: true,
     }),
     defineField({
+      name: "external",
+      title: "Tidligere adresse",
+      type: "string",
+      hidden: true,
+      readOnly: true,
+    }),
+    defineField({ name: "href", type: "string", hidden: true, readOnly: true }),
+    defineField({
       name: "internal",
       type: "reference",
-      description:
-        "Select which page on your website this link should point to",
-      options: { disableNew: true },
-      hidden: ({ parent }) => parent?.type !== "internal",
-      to: allLinkableTypes,
-      validation: (rule) => [
-        rule.custom((value, { parent }) => {
-          const type = (parent as { type?: string })?.type;
-          if (type === "internal" && !value?._ref)
-            return "internal can't be empty";
-          return true;
-        }),
-      ],
+      to: [...types, "blog", "blogIndex"].map((type) => ({ type })),
+      hidden: true,
+      readOnly: true,
     }),
   ],
+  validation: (r) =>
+    r.custom((value) => {
+      if (
+        !value ||
+        !Object.entries(value).some(
+          ([k, v]) =>
+            !["_type", "_key", "openInNewTab"].includes(k) && Boolean(v),
+        )
+      )
+        return true;
+      return (
+        Boolean((value as { target?: { kind?: string } }).target?.kind) ||
+        "Velg et lenkemål."
+      );
+    }),
   preview: {
-    select: {
-      externalUrl: "external",
-      urlType: "type",
-      internalUrl: "internal.slug.current",
-      openInNewTab: "openInNewTab",
-    },
-    prepare({ externalUrl, urlType, internalUrl, openInNewTab }) {
-      const url = urlType === "external" ? externalUrl : `/${internalUrl}`;
-      const newTabIndicator = openInNewTab ? " ↗" : "";
-      const truncatedUrl =
-        url?.length > 30 ? `${url.substring(0, 30)}...` : url;
-
-      return {
-        title: `${urlType === "external" ? "External" : "Internal"} Link`,
-        subtitle: `${truncatedUrl}${newTabIndicator}`,
-      };
-    },
+    select: { title: "target.kind" },
+    prepare: ({ title }) => ({ title: title || "Velg lenkemål" }),
   },
 });
