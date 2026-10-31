@@ -1,5 +1,4 @@
 import Script from "next/script";
-import Link from "next/link";
 import { Fragment } from "react";
 import { draftMode } from "next/headers";
 import { VisualEditing } from "next-sanity/visual-editing";
@@ -34,9 +33,9 @@ export default async function PublicLayout({
         <>
           <aside className="preview-status">
             Forhåndsvisning{" "}
-            <Link href="/api/draft-mode/disable" prefetch={false}>
+            <a href="/api/draft-mode/disable" target="_top">
               Avslutt direkte forhåndsvisning
-            </Link>
+            </a>
           </aside>
           <SanityLive includeDrafts />
           <VisualEditing />
