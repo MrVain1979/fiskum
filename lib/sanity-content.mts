@@ -92,8 +92,8 @@ export async function sanityQuery<const Q extends string>(
   // One network boundary, tied to actual generated named queries; no handwritten CMS result models.
   return payload.result as ClientReturn<Q, unknown>;
 }
-export async function fetchRouteIndex(fetcher: Fetcher = fetch) {
-  const docs = await sanityQuery(routeIndexQuery, {}, [sitemapTag], fetcher);
+export async function fetchRouteIndex(fetcher: Fetcher = fetch, noStore = false) {
+  const docs = await sanityQuery(routeIndexQuery, {}, [sitemapTag], fetcher, noStore);
   return [
     "homePage",
     "page",

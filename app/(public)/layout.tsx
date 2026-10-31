@@ -1,7 +1,7 @@
 import Script from "next/script";
 import { Fragment } from "react";
 import { draftMode } from "next/headers";
-import { VisualEditing } from "next-sanity/visual-editing";
+import NativeVisualEditing from "../components/NativeVisualEditing";
 import { SanityLive } from "../../lib/sanity-live";
 import { fetchShellData } from "../../lib/sanity-content.mts";
 import { organizationJsonLd, serializeJsonLd } from "../../lib/metadata.mjs";
@@ -38,7 +38,7 @@ export default async function PublicLayout({
             </a>
           </aside>
           <SanityLive includeDrafts />
-          <VisualEditing />
+          <NativeVisualEditing />
         </>
       ) : null}
     </>
