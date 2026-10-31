@@ -20,6 +20,8 @@ Studio is isolated at `/studio`. Native Presentation uses `/api/draft-mode/enabl
 
 `SANITY_API_READ_TOKEN` is a server-only read token. `browserToken` and preview sharing are disabled: this project also contains private Inbox documents. The published business dataset is public, but Sanity restricts every dotted document ID to authenticated reads. Inbox writes always use `formSubmission.<uuid>` and a separate `SANITY_FORM_WRITE_TOKEN`; public content queries use an explicit business-type whitelist and never query submissions. See [Sanity IDs and paths](https://www.sanity.io/docs/content-lake/ids).
 
+`NativeVisualEditing` uses the installed SDK's `refresh` prop for both native mutation and manual events. The default SDK handler ignores mutations, which left an autosaved image crop stale until the editor pressed Refresh. The callback refreshes the authorized server-rendered route and returns the SDK-style completion promise; it adds no polling, message bridge or browser credential.
+
 The existing contact form and its notification behavior remain intact. A published visible newsletter section enables an explicit consent-based **request** in the same Inbox, with no mailing-list provider, automatic enrollment, or external email. In Preview, both form types cannot submit. The old `/preview` and `/preview/session` routes return 410.
 
 The native exit endpoint checks the exact configured origin and returns raw expiration headers for all four SDK cookies in ordinary and Partitioned forms. Local HTTP checks can set `FRONTEND_ORIGIN=http://localhost:<port>`. In production the default is the established Fiskum domain; Vercel Preview uses its exact trusted deployment URL.
@@ -27,6 +29,8 @@ The native exit endpoint checks the exact configured origin and returns raw expi
 ## Targeted publication cache
 
 Published queries retain the existing Next Data Cache and signed webhook. Native Preview bypasses it. The existing `/api/revalidate` expires document, shell, collection, route and reference tags as appropriate, including transitive FAQ/image/file references and historical redirects. `sanity-studio/webhook.groq` contains the exact projection. The Sanity webhook must include `previousPaths`, `"canonical": seo.canonical`, `"parentId": parent._ref`, `title` and `navigationTitle` in **both** `before` and `after`, in addition to its existing `_id`, `_type`, `slug`, `publishedAt`, `seoNoIndex` and redirect `from` fields. Native Publish persists history with a current-revision guard before publishing.
+
+The sitemap XML is the exception: its route is dynamic and reads the published index on each request. A static XML response remained unchanged after two successful publication webhooks. Its existing route query, canonical/noindex filtering, sitemap tag and webhook path remain the same; page caches keep their targeted behavior. After building, `node tests/sitemap-http.mjs` exercises the actual local production HTTP route with an isolated CMS fixture through publication, rename, noindex, alternate canonical and unpublication, without CMS writes or manual invalidation.
 
 ## Additive migration and acceptance
 
