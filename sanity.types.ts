@@ -1045,7 +1045,7 @@ export type FormSubmission = {
     _key: string;
   }>;
   status?: "new" | "inProgress" | "done";
-  emailStatus?: "pending" | "sent" | "failed" | "notRequested";
+  emailStatus?: "unconfirmed" | "pending" | "sent" | "failed" | "notRequested";
 };
 
 export type MediaFolderReference = {

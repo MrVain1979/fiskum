@@ -92,8 +92,9 @@ export default defineType({
       readOnly: true,
       options: {
         list: [
-          { title: "Avventer", value: "pending" },
-          { title: "Sendt", value: "sent" },
+          { title: "E-post ikke bekreftet – les henvendelsen her", value: "unconfirmed" },
+          { title: "Tidligere varsel – kvittering mangler", value: "pending" },
+          { title: "Tidligere kvittert av tjenesten – levering ikke bekreftet", value: "sent" },
           { title: "Mislyktes – les henvendelsen her", value: "failed" },
           {
             title: "Kun innboks – ingen e-post er bestilt",

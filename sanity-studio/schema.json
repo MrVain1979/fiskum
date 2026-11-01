@@ -7796,6 +7796,10 @@
           "of": [
             {
               "type": "string",
+              "value": "unconfirmed"
+            },
+            {
+              "type": "string",
               "value": "pending"
             },
             {

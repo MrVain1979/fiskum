@@ -60,6 +60,7 @@ function initInteractions() {
       }
       if (formStatus) formStatus.hidden = true;
 
+      let handingOff = false;
       try {
         const payload = new FormData(contactForm);
         const snapshot = JSON.stringify([...payload]);
@@ -78,6 +79,12 @@ function initInteractions() {
           );
         }
 
+        handingOff = submitFormHandoff(result);
+        if (handingOff) {
+          showFormStatus("Overfører meldingen …");
+          return;
+        }
+
         contactForm.reset();
         pendingSubmission = null;
         showFormStatus(
@@ -91,7 +98,7 @@ function initInteractions() {
           true,
         );
       } finally {
-        if (button) {
+        if (button && !handingOff) {
           button.disabled = false;
           button.textContent = originalLabel;
         }
@@ -394,3 +401,30 @@ const observeRoot = () => {
 if (document.readyState === "loading")
   document.addEventListener("DOMContentLoaded", observeRoot);
 else observeRoot();
+function submitFormHandoff(result) {
+  if (!result || result.success !== true) throw new Error("Henvendelsen kunne ikke mottas.");
+  if (result.delivery === "stored_only") return false;
+  const handoff = result.handoff;
+  if (result.delivery !== "handoff_required" || !handoff || handoff.method !== "POST" || typeof handoff.action !== "string" || !handoff.fields || typeof handoff.fields !== "object" || Array.isArray(handoff.fields)) throw new Error("Ugyldig overføring av skjema.");
+  const action = new URL(handoff.action);
+  const fields = Object.entries(handoff.fields);
+  if (action.origin !== "https://formsubmit.co" || action.username || action.password || action.search || action.hash || !/^\/[^/]+$/.test(action.pathname) || !fields.length || fields.some(([name, value]) => !name || typeof value !== "string")) throw new Error("Ugyldig overføring av skjema.");
+  if (document.getElementById("formsubmit-browser-handoff")) return true;
+  const form = document.createElement("form");
+  form.id = "formsubmit-browser-handoff";
+  form.hidden = true;
+  form.setAttribute("action", action.href);
+  form.setAttribute("method", "POST");
+  form.setAttribute("accept-charset", "UTF-8");
+  for (const [name, value] of fields) {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  }
+  document.body.appendChild(form);
+  HTMLFormElement.prototype.submit.call(form);
+  return true;
+}
+// End provider handoff
