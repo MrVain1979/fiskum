@@ -115,6 +115,12 @@ export const footer = defineType({
       description: "Nettsiden krediteringsteksten skal lenke til.",
       validation: (rule) => rule.required().uri({ scheme: ["http", "https"] }),
     }),
+    ...[
+      ["phoneHeading", "Telefonoverskrift"],
+      ["emailHeading", "E-postoverskrift"],
+      ["addressHeading", "Adresseoverskrift"],
+      ["socialHeading", "Overskrift for sosiale medier"],
+    ].map(([name, title]) => defineField({ name, title, type: "string" })),
     defineField({
       name: "columns",
       hidden: true,
