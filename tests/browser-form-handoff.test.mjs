@@ -6,13 +6,13 @@ import {runInNewContext} from 'node:vm';
 const source = readFileSync(new URL('../script.js', import.meta.url), 'utf8');
 const helper = source.split(/\/\/ FORM_HANDOFF_START\r?\n/)[1].split('// FORM_HANDOFF_END')[0];
 const allowed = ['name', 'email', 'message', 'submit'];
-const instruction = () => ({success: true, delivery: 'handoff_required', handoff: {action: 'https://formsubmit.co/office@example.test', method: 'POST', fields: {name: '<script>plain text</script>', email: 'sender@example.test', message: 'First & second\nNext line', submit: 'named control', _subject: 'Test subject', _cc: 'copy@example.test', _url: 'https://example.test/contact', _next: 'https://example.test/contact?sent=1', _template: 'table', _captcha: 'false'}}});
+const instruction = () => ({success: true, delivery: 'handoff_required', handoff: {action: 'https://formsubmit.co/office@example.test', method: 'POST', fields: {name: 'Bj\u00f8rn + \u00c6 \u00d8 \u00c5 <script>plain text</script>', email: 'sender@example.test', message: 'First & second\nNext line', submit: 'named control', _subject: 'Test subject', _cc: 'copy@example.test', _url: 'https://example.test/contact', _next: 'https://example.test/contact?sent=1', _template: 'table', _captcha: 'false'}}});
 const response = (body, ok = true) => ({ok, json: async () => body});
 function functions(fetch = async () => {throw new Error('unexpected request')}) {
-  return runInNewContext(helper + '\n({submissionIdentity, validateFormHandoff, submitFormHandoff})', {URL, Set, Object, Error, fetch, window: {location: {origin: 'https://example.test'}}, document: {createElement() {throw new Error('native DOM submission is forbidden')}}, HTMLFormElement: {prototype: {submit() {throw new Error('native submit is forbidden')}}}});
+  return runInNewContext(helper + '\n({submissionIdentity, validateFormHandoff, submitFormHandoff})', {URL, URLSearchParams, Set, Object, Error, fetch, window: {location: {origin: 'https://example.test'}}, document: {createElement() {throw new Error('native DOM submission is forbidden')}}, HTMLFormElement: {prototype: {submit() {throw new Error('native submit is forbidden')}}}});
 }
 
-test('provider AJAX preserves server-owned recipient, CC and fields; only explicit true is accepted', async () => {
+test('URL-encoded provider AJAX preserves Unicode, recipient, CC and string fields without a JSON Content-Type', async () => {
   for (const success of [true, 'true']) {
     const calls = [];
     const api = functions(async (url, init) => {calls.push({url, init}); return response({success});});
@@ -23,8 +23,12 @@ test('provider AJAX preserves server-owned recipient, CC and fields; only explic
     assert.equal(calls[0].init.method, 'POST');
     assert.equal(calls[0].init.credentials, 'omit');
     assert.equal(calls[0].init.redirect, 'error');
-    assert.equal(calls[0].init.headers['Content-Type'], 'application/json');
-    assert.deepEqual(JSON.parse(calls[0].init.body), result.handoff.fields);
+    assert.equal(calls[0].init.headers.Accept, 'application/json');
+    assert.deepEqual(Object.keys(calls[0].init.headers), ['Accept']);
+    assert.ok(calls[0].init.body instanceof URLSearchParams);
+    assert.deepEqual(Object.fromEntries(calls[0].init.body), result.handoff.fields);
+    assert.match(String(calls[0].init.body), /Bj%C3%B8rn/);
+    assert.ok([...calls[0].init.body.values()].every(value => typeof value === 'string'));
   }
 });
 

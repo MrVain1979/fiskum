@@ -451,8 +451,8 @@ async function submitFormHandoff(result, allowedFields, origin = window.location
     if (result.delivery !== 'handoff_required') throw new Error(FORM_STORED_MESSAGE);
     const handoff = validateFormHandoff(result.handoff, allowedFields, origin);
     const response = await fetchRequest(handoff.url, {
-      method: 'POST', headers: {'Content-Type': 'application/json', Accept: 'application/json'},
-      body: JSON.stringify(handoff.fields), credentials: 'omit', redirect: 'error',
+      method: 'POST', headers: {Accept: 'application/json'},
+      body: new URLSearchParams(handoff.fields), credentials: 'omit', redirect: 'error',
     });
     const provider = await response.json();
     if (!response.ok || (provider?.success !== true && provider?.success !== 'true')) throw new Error(FORM_STORED_MESSAGE);
