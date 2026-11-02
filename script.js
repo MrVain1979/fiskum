@@ -31,28 +31,31 @@ function initInteractions() {
     const query = new URLSearchParams(window.location.search);
     const formStatus = contactForm?.querySelector(".form-status");
     let pendingSubmission;
+    let inFlight = false;
+    const successMessage = contactForm.dataset.successMessage?.trim() ||
+      "Takk! Forespørselen er mottatt. Vi tar kontakt så snart vi kan.";
     const showFormStatus = (message, isError = false) => {
       if (!formStatus) return;
       formStatus.textContent = message;
       formStatus.classList.toggle("is-error", isError);
       formStatus.hidden = false;
       formStatus.setAttribute("role", isError ? "alert" : "status");
+      formStatus.tabIndex = -1;
+      formStatus.focus({preventScroll: true});
+      formStatus.scrollIntoView({block: 'center', behavior: 'auto'});
     };
 
     if (contactForm && query.get("sendt") === "1") {
-      showFormStatus(
-        contactForm.dataset.successMessage ||
-          "Takk! Forespørselen er mottatt. Vi tar kontakt så snart vi kan.",
-      );
+      showFormStatus(successMessage);
       window.history.replaceState({}, "", window.location.pathname);
     }
 
     listen(contactForm, "submit", async (event) => {
       event.preventDefault();
-      if (contactForm.dataset.previewDisabled) return;
+      if (contactForm.dataset.previewDisabled || inFlight) return;
+      inFlight = true;
       const button = contactForm.querySelector('button[type="submit"]');
       const originalLabel = button?.textContent || "Send forespørsel";
-      const endpoint = contactForm.action;
 
       if (button) {
         button.disabled = true;
@@ -60,17 +63,17 @@ function initInteractions() {
       }
       if (formStatus) formStatus.hidden = true;
 
-      let handingOff = false;
       try {
+        const endpoint = new URL(contactForm.action, window.location.href);
+        if (endpoint.origin !== window.location.origin || endpoint.username || endpoint.password || !['/api/forms/contact', '/api/forms/newsletter'].includes(endpoint.pathname) || endpoint.search || endpoint.hash) throw new Error(FORM_SAVE_ERROR);
         const payload = new FormData(contactForm);
-        const snapshot = JSON.stringify([...payload]);
-        if (!pendingSubmission || pendingSubmission.snapshot !== snapshot)
-          pendingSubmission = { snapshot, id: crypto.randomUUID() };
+        pendingSubmission = submissionIdentity(payload, pendingSubmission);
         payload.set("submissionId", pendingSubmission.id);
-        const response = await fetch(endpoint, {
+        const response = await fetch(endpoint.href, {
           method: "POST",
           body: payload,
           headers: { Accept: "application/json" },
+          credentials: 'same-origin', redirect: 'error',
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok || result.success !== true) {
@@ -79,18 +82,21 @@ function initInteractions() {
           );
         }
 
-        handingOff = submitFormHandoff(result);
-        if (handingOff) {
-          showFormStatus("Overfører meldingen …");
+        // Newsletter requests are deliberately stored in the CMS only.
+        if (endpoint.pathname === '/api/forms/newsletter') {
+          if (result.delivery !== 'stored_only') throw new Error(FORM_STORED_MESSAGE);
+          showFormStatus('Forespørselen om nyhetsbrev er lagret. Ingen e-post sendes fra dette skjemaet.');
+          return;
+        }
+        const delivery = await submitFormHandoff(result, [...payload.keys()].filter((name) => !name.startsWith('_') && name !== 'submissionId'));
+        if (delivery === 'stored_only') {
+          showFormStatus(FORM_STORED_MESSAGE);
           return;
         }
 
         contactForm.reset();
         pendingSubmission = null;
-        showFormStatus(
-          contactForm.dataset.successMessage ||
-            "Takk! Forespørselen er mottatt. Vi tar kontakt så snart vi kan.",
-        );
+        showFormStatus(successMessage);
       } catch (error) {
         showFormStatus(
           error.message ||
@@ -98,7 +104,8 @@ function initInteractions() {
           true,
         );
       } finally {
-        if (button && !handingOff) {
+        inFlight = false;
+        if (button) {
           button.disabled = false;
           button.textContent = originalLabel;
         }
@@ -401,30 +408,55 @@ const observeRoot = () => {
 if (document.readyState === "loading")
   document.addEventListener("DOMContentLoaded", observeRoot);
 else observeRoot();
-function submitFormHandoff(result) {
-  if (!result || result.success !== true) throw new Error("Henvendelsen kunne ikke mottas.");
-  if (result.delivery === "stored_only") return false;
-  const handoff = result.handoff;
-  if (result.delivery !== "handoff_required" || !handoff || handoff.method !== "POST" || typeof handoff.action !== "string" || !handoff.fields || typeof handoff.fields !== "object" || Array.isArray(handoff.fields)) throw new Error("Ugyldig overføring av skjema.");
-  const action = new URL(handoff.action);
-  const fields = Object.entries(handoff.fields);
-  if (action.origin !== "https://formsubmit.co" || action.username || action.password || action.search || action.hash || !/^\/[^/]+$/.test(action.pathname) || !fields.length || fields.some(([name, value]) => !name || typeof value !== "string")) throw new Error("Ugyldig overføring av skjema.");
-  if (document.getElementById("formsubmit-browser-handoff")) return true;
-  const form = document.createElement("form");
-  form.id = "formsubmit-browser-handoff";
-  form.hidden = true;
-  form.setAttribute("action", action.href);
-  form.setAttribute("method", "POST");
-  form.setAttribute("accept-charset", "UTF-8");
-  for (const [name, value] of fields) {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = name;
-    input.value = value;
-    form.appendChild(input);
-  }
-  document.body.appendChild(form);
-  HTMLFormElement.prototype.submit.call(form);
-  return true;
+// FORM_HANDOFF_START
+const FORM_SAVE_ERROR = 'Meldingen kunne ikke sendes. Pr\u00f8v igjen, eller kontakt oss direkte.';
+const FORM_STORED_MESSAGE = 'Henvendelsen er lagret, men sendingen kunne ikke bekreftes. Kontakt oss direkte ved behov.';
+
+/** Keep retries of identical values on the same private CMS receipt. */
+function submissionIdentity(payload, previous, createId = () => crypto.randomUUID()) {
+  const fields = [...payload].filter(([name]) => name !== 'submissionId');
+  if (fields.some(([, value]) => typeof value !== 'string')) throw new Error(FORM_SAVE_ERROR);
+  const snapshot = JSON.stringify(fields);
+  return previous?.snapshot === snapshot ? previous : {snapshot, id: createId()};
 }
-// End provider handoff
+
+function validateFormHandoff(handoff, allowedFields, origin) {
+  if (!handoff || handoff.method !== 'POST' || typeof handoff.action !== 'string') throw new Error(FORM_STORED_MESSAGE);
+  const action = new URL(handoff.action);
+  const recipient = decodeURIComponent(action.pathname.slice(1));
+  if (action.origin !== 'https://formsubmit.co' || action.username || action.password || action.port || action.search || action.hash ||
+      !(/^[^\s@<>/\\]+@[^\s@<>/\\]+\.[^\s@<>/\\]+$/.test(recipient) || /^[a-f0-9]{32}$/i.test(recipient))) throw new Error(FORM_STORED_MESSAGE);
+  if (!handoff.fields || typeof handoff.fields !== 'object' || Array.isArray(handoff.fields)) throw new Error(FORM_STORED_MESSAGE);
+  const fields = Object.entries(handoff.fields);
+  const allowed = new Set([...allowedFields, 'email', '_subject', '_url', '_next', '_template', '_captcha', '_cc']);
+  if (!fields.length || fields.length > 100) throw new Error(FORM_STORED_MESSAGE);
+  for (const [name, value] of fields) {
+    if (!allowed.has(name) || ['__proto__', 'constructor', 'prototype'].includes(name) || typeof value !== 'string' || value.length > 10000 || value.includes('\0')) throw new Error(FORM_STORED_MESSAGE);
+  }
+  for (const name of ['_next', '_url']) {
+    if (typeof handoff.fields[name] !== 'string') throw new Error(FORM_STORED_MESSAGE);
+    const url = new URL(handoff.fields[name]);
+    if (url.origin !== origin || url.username || url.password) throw new Error(FORM_STORED_MESSAGE);
+  }
+  if (handoff.fields._captcha !== 'false' || handoff.fields._template !== 'table') throw new Error(FORM_STORED_MESSAGE);
+  // The server owns the recipient, CC, subject and values; only the documented
+  // browser AJAX path differs from the validated native handoff destination.
+  return {url: `${action.origin}/ajax${action.pathname}`, fields: Object.fromEntries(fields)};
+}
+
+async function submitFormHandoff(result, allowedFields, origin = window.location.origin, fetchRequest = globalThis.fetch) {
+  if (!result || result.success !== true) throw new Error(FORM_SAVE_ERROR);
+  if (result.delivery === 'stored_only') return 'stored_only';
+  try {
+    if (result.delivery !== 'handoff_required') throw new Error(FORM_STORED_MESSAGE);
+    const handoff = validateFormHandoff(result.handoff, allowedFields, origin);
+    const response = await fetchRequest(handoff.url, {
+      method: 'POST', headers: {'Content-Type': 'application/json', Accept: 'application/json'},
+      body: JSON.stringify(handoff.fields), credentials: 'omit', redirect: 'error',
+    });
+    const provider = await response.json();
+    if (!response.ok || (provider?.success !== true && provider?.success !== 'true')) throw new Error(FORM_STORED_MESSAGE);
+    return 'sent';
+  } catch { throw new Error(FORM_STORED_MESSAGE); }
+}
+// FORM_HANDOFF_END
