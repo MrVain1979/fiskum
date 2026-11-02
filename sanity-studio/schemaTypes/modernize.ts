@@ -39,6 +39,7 @@ export function modernizeDocument(
     ...document,
     groups: GROUPS,
     fields: [
+      defineField({name: "editorRound2Version", title: "Editor migration version", type: "number", hidden: true, readOnly: true}),
       ...document.fields
         .filter((f) => f.name !== "seo")
         .map((field) => {

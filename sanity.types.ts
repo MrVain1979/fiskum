@@ -760,6 +760,7 @@ export type HomePage = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
+  editorRound2Version?: number;
   title?: string;
   description?: string;
   heroLead?: string;
@@ -877,6 +878,7 @@ export type NewsPost = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
+  editorRound2Version?: number;
   internalTitle?: string;
   title?: string;
   slug?: Slug;
@@ -905,6 +907,7 @@ export type ProjectReference = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
+  editorRound2Version?: number;
   internalTitle?: string;
   title?: string;
   slug?: Slug;
@@ -942,6 +945,7 @@ export type Page = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
+  editorRound2Version?: number;
   title?: string;
   description?: string;
   slug?: Slug;
@@ -1005,6 +1009,7 @@ export type Service = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
+  editorRound2Version?: number;
   internalTitle?: string;
   title?: string;
   slug?: Slug;

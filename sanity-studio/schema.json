@@ -5996,6 +5996,13 @@
           "type": "string"
         }
       },
+      "editorRound2Version": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "number"
+        },
+        "optional": true
+      },
       "title": {
         "type": "objectAttribute",
         "value": {
@@ -6696,6 +6703,13 @@
           "type": "string"
         }
       },
+      "editorRound2Version": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "number"
+        },
+        "optional": true
+      },
       "internalTitle": {
         "type": "objectAttribute",
         "value": {
@@ -6882,6 +6896,13 @@
         "value": {
           "type": "string"
         }
+      },
+      "editorRound2Version": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "number"
+        },
+        "optional": true
       },
       "internalTitle": {
         "type": "objectAttribute",
@@ -7105,6 +7126,13 @@
         "value": {
           "type": "string"
         }
+      },
+      "editorRound2Version": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "number"
+        },
+        "optional": true
       },
       "title": {
         "type": "objectAttribute",
@@ -7515,6 +7543,13 @@
         "value": {
           "type": "string"
         }
+      },
+      "editorRound2Version": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "number"
+        },
+        "optional": true
       },
       "internalTitle": {
         "type": "objectAttribute",
