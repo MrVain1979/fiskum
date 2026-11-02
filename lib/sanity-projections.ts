@@ -17,7 +17,7 @@ export const documentProjection = `${sharedFields},
  _type=="newsPost"=>{"image":mainImage{${imageProjection}}}`;
 export const settingsProjection = `_id,_type,_updatedAt,companyName,siteName,siteTitle,siteDescription,phone,contactEmail,contactFormEnabled,address,socialLinks,logo{${imageProjection}},defaultSeo{...,image{${imageProjection}}}`;
 export const navbarProjection = `_id,_type,_updatedAt,columns[]{_key,_type,name,title,url{${linkProjection}},links[]{_key,name,url{${linkProjection}}}}`;
-export const footerProjection = `_id,_type,_updatedAt,subtitle,copyrightText,developerCreditText,developerCreditUrl,columns[]{_key,title,links[]{_key,name,url{${linkProjection}}}}`;
+export const footerProjection = `_id,_type,_updatedAt,subtitle,phoneHeading,emailHeading,addressHeading,socialHeading,copyrightText,developerCreditText,developerCreditUrl,columns[]{_key,title,links[]{_key,name,url{${linkProjection}}}}`;
 export const faqProjection = `_id,_type,title,richText[]{${portableProjection}}`;
 export const redirectProjection = `_id,_type,title,from,permanent,to{${linkProjection}}`;
 
