@@ -97,7 +97,8 @@ export const iconPickerType = defineType({
       hidden: true,
       readOnly: true,
     }),
-    defineField({ name: "name", type: "string", hidden: true, readOnly: true }),
+    // Sanity omits the object input when every child field is hidden.
+    defineField({ name: "name", type: "string", readOnly: true }),
     defineField({ name: "svg", type: "text", hidden: true, readOnly: true }),
   ],
   preview: {
