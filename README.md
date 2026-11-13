@@ -1,5 +1,14 @@
 # Fiskum
 
+The sole public origin is `https://www.fiskum-sveis.no`. Vercel Domains redirects
+`fiskum-sveis.no` and the exact public alias `fiskum-studio.vercel.app` with `308`
+to www, preserving the complete path and query. Confirm the active Sanity webhook
+uses `https://www.fiskum-sveis.no/api/revalidate` and save those domain rules before
+deploying code without the old alias rule. Private deployments keep their own
+protected origins. Draft exit accepts only the exact deployment and branch origins
+provided by Vercel in Preview, with the existing same-origin checks;
+an explicit `FRONTEND_ORIGIN` continues to take precedence.
+
 The existing Fiskum design and renderer are shared by the public Next app and the optional static exporter. `lib/render-content.mjs` contains the rendering functions formerly in `scripts/build-static.mjs`; the latter remains the CLI and compatibility re-export. Server Functions do not import the filesystem exporter.
 
 Use Node 24 and the pinned pnpm version. Install the root package and the standalone Studio separately, as specified in `vercel.json`. `pnpm run build` builds Studio and the public app. `pnpm test`, `pnpm run typecheck`, and `pnpm --dir sanity-studio exec tsc --noEmit` check the source. `pnpm run sanity:typegen` extracts the real Studio schema and generates contracts for all 15 active named queries in `lib/sanity-projections.ts`.

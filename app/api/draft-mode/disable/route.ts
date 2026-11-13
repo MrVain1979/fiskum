@@ -4,7 +4,17 @@ export async function GET(request: Request) {
     process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : productionOrigin;
-  const origin = new URL(process.env.FRONTEND_ORIGIN || fallback).origin;
+  const requestUrlOrigin = new URL(request.url).origin;
+  // Trust only Vercel's exact deployment/branch names, never a request Host header.
+  const previewOrigins =
+    process.env.VERCEL_ENV === "preview" && !process.env.FRONTEND_ORIGIN
+      ? [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]
+          .filter((host): host is string => /^[a-z0-9-]+\.vercel\.app$/i.test(host || ""))
+          .map((host) => new URL(`https://${host}`).origin)
+      : [];
+  const origin = previewOrigins.includes(requestUrlOrigin)
+    ? requestUrlOrigin
+    : new URL(process.env.FRONTEND_ORIGIN || fallback).origin;
   let referer: string | undefined;
   try {
     const value = request.headers.get("referer");
@@ -15,7 +25,7 @@ export async function GET(request: Request) {
   const requestOrigin = request.headers.get("origin");
   if (
     referer !== origin ||
-    new URL(request.url).origin !== origin ||
+    requestUrlOrigin !== origin ||
     (requestOrigin && requestOrigin !== origin)
   )
     return new Response("Ugyldig origin.", { status: 403 });
